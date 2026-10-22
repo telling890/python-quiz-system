@@ -1,0 +1,26 @@
+# 打包产物（体积大，用 build.py 可重新生成）
+dist/
+build/
+*.spec
+pylibs/
+
+# Python 缓存
+__pycache__/
+*.py[cod]
+.venv/
+
+# 运行期临时文件
+tmp_run/
+.diag/
+*.log
+
+# 系统文件
+Thumbs.db
+desktop.ini
+.DS_Store
+
+# 本地状态（学习进度，不入库）
+state.json
+
+# Office 临时锁文件
+~\$*
