@@ -1,0 +1,38 @@
+name: 题库与组卷自检
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  selftest:
+    name: 自检（Python ${{ matrix.python-version }}）
+    runs-on: windows-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.8", "3.11"]
+
+    env:
+      PYTHONIOENCODING: utf-8
+      PYTHONLEGACYWINDOWSSTDIO: utf-8
+
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v4
+
+      - name: 安装 Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: 题库自检（139 题 / 338 用例）
+        run: python selftest.py
+
+      - name: 组卷系统自检（10 项）
+        run: python _test_exam.py
+
+      - name: 列出交付物
+        run: python -c "import qbank; print('题目', len(qbank.QUESTIONS), '用例', sum(len(q['cases']) for q in qbank.QUESTIONS)); print('章节', [c['name'] for c in qbank.CHAPTERS])"
