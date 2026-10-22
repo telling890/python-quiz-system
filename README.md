@@ -1,24 +1,32 @@
 # Python 程序设计刷题系统
 
+[![CI](https://github.com/telling890/python-quiz-system/actions/workflows/selftest.yml/badge.svg)](https://github.com/telling890/python-quiz-system/actions/workflows/selftest.yml)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+[![Python](https://img.shields.io/badge/python-3.8%2B-3776AB.svg)](https://www.python.org/)
+[![Platform](https://img.shields.io/badge/platform-Windows%2010%2F11-0078D4.svg)](#)
+[![Tests](https://img.shields.io/badge/selftest-139%20%E9%A2%98%20%C2%B7%20338%20%E7%94%A8%E4%BE%8B-brightgreen.svg)](selftest.py)
+
 把教材《Python 程序设计实验指导与习题解答》第 3～5 章的实验题做成一个可以**边写边判**的桌面刷题程序：
 写完代码按 F5 就能跑，程序会用题目自带的测试用例逐条比对输出，通过的题自动记录，没通过的自动进错题本。
 
 > **直接下载**：[便携版 zip](downloads/Python-quiz-system-portable.zip)（8.9 MB，解压后双击 `Python刷题系统.exe`，无需安装 Python）
-> · 仓库：<https://github.com/telling890/python-quiz-system>
+> **在线看文档**：[项目汇报](docs/pdf/5-项目汇报.pdf) · [答辩 PPT](docs/pdf/4-答辩演示.pdf) · [需求](docs/pdf/1-需求说明书.pdf) · [设计](docs/pdf/2-设计文档.pdf) · [测试](docs/pdf/3-测试报告.pdf)
 
 - 可执行文件：解压后的 `Python刷题系统.exe`（免安装目录版，双击运行）
 - 源码运行：`python main.py`；重新打包：`python build.py`（仓库不含 `dist/`，用脚本生成）
 - 题库：**139 道**（教材第3章 35 + 第4章 17 + 第5章 17，拓展练习 40，进阶算法 30），**338 个测试用例**
-- 项目文档：`docs/` 下的需求说明书、设计文档、测试报告、答辩演示 PPT、项目汇报
+- 自动测试：GitHub Actions 在每次推送时用 Python 3.8 / 3.11 跑题库自检与组卷自检
 
-![主界面](shots/01_home.png)
+![功能巡览](shots/demo.gif)
+
+> 动图依次演示：主页 → 刷题 → 判题反馈 → 统计饼图 → 组卷配置 → 交卷报告（静态截图见 `shots/`）
 
 ---
 
 ## 一、怎么打开
 
-1. 解压 `dist\Python刷题系统-便携版.zip`（或直接打开 `dist\Python刷题系统\` 文件夹），
-   双击里面的 `Python刷题系统.exe`。整个文件夹可以拷到 U 盘或任意一台 Windows 电脑，双击即用。
+1. 下载 [便携版 zip](downloads/Python-quiz-system-portable.zip) 并解压到任意目录（U 盘也行），
+   双击里面的 `Python刷题系统.exe`。整个文件夹可以拷到任意一台 Windows 电脑，双击即用。
 2. 如果弹出蓝色的 **「Windows 已保护你的电脑」**（Win11 Smart App Control 对未签名程序的默认提示），
    点 **更多信息 → 仍要运行**。
 3. 启动约 1～2 秒。程序不解压临时文件、不依赖 `%TEMP%`、不写注册表。
@@ -133,33 +141,33 @@
 
 ```
 quiz_app/
-├─ dist/
-│  ├─ Python刷题系统/          ← 目录版，双击里面的 exe（共约 21 MB）
-│  └─ Python刷题系统-便携版.zip ← 打包好的便携版（8.9 MB）
+├─ .github/workflows/selftest.yml   CI：推送时自动跑题库与组卷自检
+├─ downloads/
+│  └─ Python-quiz-system-portable.zip  ← 便携版安装包（8.9 MB，仓库内直接下载）
 ├─ docs/
-│  ├─ 1-需求说明书.docx
-│  ├─ 2-设计文档.docx
-│  ├─ 3-测试报告.docx
-│  ├─ 4-答辩演示.pptx
-│  ├─ 5-项目汇报.docx
-│  └─ build_docs.py / build_ppt.py   ← 文档与 PPT 的生成脚本
+│  ├─ 1-需求说明书.docx / 2-设计文档.docx / 3-测试报告.docx
+│  ├─ 4-答辩演示.pptx / 5-项目汇报.docx
+│  ├─ pdf/                     ← 上面 5 份的 PDF 版（GitHub 可在线预览）
+│  └─ build_docs.py / build_ppt.py / build_report.py   ← 文档生成脚本
 ├─ shots/                    界面截图（README 与 PPT 用）
 ├─ main.py                   程序入口（DPI 适配、异常兜底）
-├─ ui.py                     三个页面：主页 / 刷题 / 统计
-├─ widgets.py                自绘控件：圆角按钮、导航项、代码编辑器、滚动容器
+├─ ui.py                     五个页面：主页 / 刷题 / 统计 / 组卷 / 交卷报告
+├─ widgets.py                自绘控件：圆角按钮、导航项、代码编辑器、滚动容器、饼图
 ├─ theme.py                  配色、字体、屏幕缩放
 ├─ judge.py                  判题引擎：沙箱执行 + 输出归一化比对
 ├─ exam.py                   组卷与评分（随机抽题 / 限时 / 统计）
 ├─ ui_exam.py                组卷配置页与交卷报告页
 ├─ qbank.py                  题库汇总（按章节组织）
-├─ bank_ch3.py / bank_ch4.py / bank_ch5.py   各章题库数据
-├─ store.py                  进度持久化（收藏 / 错题 / 代码）
+├─ bank_ch3.py / bank_ch4.py / bank_ch5.py   教材三章题库
+├─ bank_extra.py / bank_algo.py              拓展练习 / 进阶算法题库
+├─ store.py                  进度持久化（收藏 / 错题 / 代码 / 考试历史）
 ├─ selftest.py               题库自检：跑一遍所有参考答案
 ├─ build.py                  一键打包（自检 → 生成图标 → PyInstaller）
 ├─ _test_exam.py             组卷系统自检（10 项）
-├─ _shoot.py / _interact.py  开发辅助：自动截图 / 交互冒烟测试
+├─ _shoot.py / _shoot_exam.py / _interact.py  开发辅助：截图 / 交互冒烟测试
 ├─ assets/app.ico            应用图标（build.py 生成）
-└─ pylibs/                   打包用 PyInstaller 5.13.2（不污染系统环境）
+├─ LICENSE                   MIT
+└─ pylibs/                   打包用 PyInstaller 5.13.2（不入库）
 ```
 
 ---
@@ -222,7 +230,7 @@ A：这是 PyInstaller **单文件（onefile）模式**的通病：它启动时�
 启动时不解压、不依赖 `%TEMP%`，因此不会再有这个报错。自己重新打包时不要改回 `--onefile`。
 
 **Q：换电脑怎么用？**
-A：把 `dist\Python刷题系统\` 整个文件夹（或解压便携版 zip）拷过去，双击 exe 即可；
+A：把解压后的整个文件夹（或便携版 zip）拷过去，双击 exe 即可；
 不需要装 Python、不需要联网、不需要管理员权限。
 
 **Q：窗口特别大 / 文字很小？**
@@ -231,3 +239,33 @@ A：程序按屏幕 DPI 自动缩放（150% 缩放下窗口约 1978×1289）。�
 **Q：进度存在哪？换电脑怎么办？**
 A：`%LOCALAPPDATA%\PyQuizState\state.json`，复制这个文件即可迁移进度。
 同目录下的 `error.log` 只在程序启动异常时产生。
+
+---
+
+## 八、项目文档
+
+Word / PPT 原件在 `docs/`，同时导出了 PDF（GitHub 可直接在线预览）：
+
+| 文档 | 内容 | 在线预览 |
+| --- | --- | --- |
+| 需求说明书 | 15 条功能需求、非功能需求、数据设计、验收标准、追踪矩阵 | [PDF](docs/pdf/1-需求说明书.pdf) · [DOCX](docs/1-需求说明书.docx) |
+| 设计文档 | 分层架构、模块设计、判题引擎、组卷引擎、数据结构、部署 | [PDF](docs/pdf/2-设计文档.pdf) · [DOCX](docs/2-设计文档.docx) |
+| 测试报告 | 题库自检、组卷自检、交互/边界/打包测试、缺陷记录 | [PDF](docs/pdf/3-测试报告.pdf) · [DOCX](docs/3-测试报告.docx) |
+| 答辩演示 | 18 页 PPT（含界面特写、架构、测试数据） | [PDF](docs/pdf/4-答辩演示.pdf) · [PPTX](docs/4-答辩演示.pptx) |
+| 项目汇报 | 项目概况、建设内容、技术亮点、质量保障、展望 | [PDF](docs/pdf/5-项目汇报.pdf) · [DOCX](docs/5-项目汇报.docx) |
+
+---
+
+## 九、许可证
+
+本项目基于 [MIT License](LICENSE) 开源，可自由使用、修改和分发（保留版权声明即可）。
+题库中「拓展练习」与「进阶算法」的题干为自行改写、参考答案与测试用例为自行编写，
+参考了公开题集（Python100Cases 等）的题型，未直接复制其代码。
+
+---
+
+## 十、致谢
+
+- 教材《Python 程序设计实验指导与习题解答》提供了第 3～5 章的实验素材
+- [Python100Cases](https://github.com/RichardFu123/Python100Cases) 提供了拓展题的题型参考
+- 界面与交互参考了常见刷题 App 的用法

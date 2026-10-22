@@ -1,0 +1,14 @@
+# 打包与文档生成所需的依赖（运行程序本身不需要任何第三方库）
+#
+# 安装：python -m pip install --target pylibs -r requirements-build.txt
+# 然后：python build.py
+
+# 打包成 exe（必须 5.x：系统自带的 3.6 不支持 Python 3.8）
+pyinstaller==5.13.2
+
+# 生成应用图标（build.py 用 Pillow 画图标）
+pillow>=9.0
+
+# 生成 Word / PPT 文档（docs/build_*.py 用）
+# python-docx>=1.1
+# python-pptx>=0.6
