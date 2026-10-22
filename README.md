@@ -3,10 +3,13 @@
 把教材《Python 程序设计实验指导与习题解答》第 3～5 章的实验题做成一个可以**边写边判**的桌面刷题程序：
 写完代码按 F5 就能跑，程序会用题目自带的测试用例逐条比对输出，通过的题自动记录，没通过的自动进错题本。
 
-- 可执行文件：`dist\Python刷题系统\Python刷题系统.exe`（免安装目录版，双击运行，目标机器不需要装 Python）
-- 便携压缩包：`dist\Python刷题系统-便携版.zip`（8.9 MB，解压即用，拷到任何电脑）
+> **直接下载**：[便携版 zip](downloads/Python-quiz-system-portable.zip)（8.9 MB，解压后双击 `Python刷题系统.exe`，无需安装 Python）
+> · 仓库：<https://github.com/telling890/python-quiz-system>
+
+- 可执行文件：解压后的 `Python刷题系统.exe`（免安装目录版，双击运行）
+- 源码运行：`python main.py`；重新打包：`python build.py`（仓库不含 `dist/`，用脚本生成）
 - 题库：**139 道**（教材第3章 35 + 第4章 17 + 第5章 17，拓展练习 40，进阶算法 30），**338 个测试用例**
-- 项目文档：`docs\` 下的需求说明书、设计文档、测试报告、答辩演示 PPT
+- 项目文档：`docs/` 下的需求说明书、设计文档、测试报告、答辩演示 PPT、项目汇报
 
 ![主界面](shots/01_home.png)
 

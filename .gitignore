@@ -24,3 +24,7 @@ state.json
 
 # Office 临时锁文件
 ~\$*
+
+# 便携版安装包（体积大，但便于直接下载）
+!downloads/
+
