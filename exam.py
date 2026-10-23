@@ -4,7 +4,8 @@
 组卷策略：
 1. 先按「章节 + 难度」过滤出可用题库；
 2. 按章节轮转抽题（每轮从各章剩余题目里随机取一题），保证章节覆盖均衡；
-3. 最后打乱题序，避免同章题目扎堆。
+3. 支持按权重抽题：错得多、没掌握的题权重更高（权重由调用方按学习记录计算）；
+4. 最后打乱题序，避免同章题目扎堆。
 
 评分：每题通过得 1 分，总分按百分制折算；同时记录用时与逐题结果。
 """
@@ -29,12 +30,31 @@ def filter_pool(questions, chapters=None, levels=None):
     return pool
 
 
-def generate_paper(questions, count, chapters=None, levels=None, seed=None):
+def _weighted_pop(rng, bucket, weights):
+    """按权重从 bucket 里取一题（权重缺失按 1 计），取走后从列表删除。"""
+    if not weights:
+        return bucket.pop()
+    total = 0.0
+    for q in bucket:
+        total += max(0.01, float(weights.get(q.get("id"), 1.0)))
+    if total <= 0:
+        return bucket.pop()
+    r = rng.uniform(0.0, total)
+    acc = 0.0
+    for i, q in enumerate(bucket):
+        acc += max(0.01, float(weights.get(q.get("id"), 1.0)))
+        if r <= acc:
+            return bucket.pop(i)
+    return bucket.pop()
+
+
+def generate_paper(questions, count, chapters=None, levels=None, seed=None, weights=None):
     """随机组卷，返回题目列表（长度 = count，且不重复）。
 
     chapters: 章节名集合（如 {"第3章 程序控制结构", "进阶算法"}），None 表示全部
     levels:   难度集合（{1,2,3}），None 表示不限
     seed:     随机种子，测试时传固定值可复现
+    weights:  题目权重 {qid: 数值}，越大越容易被抽到；None 表示等概率（章节均衡）
     """
     if count <= 0:
         raise NotEnoughQuestions("题目数量必须大于 0")
@@ -65,7 +85,7 @@ def generate_paper(questions, count, chapters=None, levels=None, seed=None):
                 break
             bucket = groups[name]
             if bucket:
-                picked.append(bucket.pop())
+                picked.append(_weighted_pop(rng, bucket, weights))
                 progressed = True
         if not progressed:
             break

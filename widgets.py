@@ -252,6 +252,83 @@ class ScrollFrame(tk.Frame):
         self.canvas.yview_scroll(int(-1 * (e.delta / 120)), "units")
 
 
+class LineChart(tk.Canvas):
+    """折线图：画历次成绩趋势（0-100 分）。
+
+    set_data([(标签, 数值), ...])；没有数据时显示提示文字。
+    """
+
+    def __init__(self, master, width=760, height=150, bg=T.CARD, font=None, small_font=None):
+        super().__init__(master, width=T.S(width), height=T.S(height), bg=bg,
+                         highlightthickness=0, bd=0)
+        self._cw = T.S(width)
+        self._ch = T.S(height)
+        self._bg = bg
+        self._font = font
+        self._small = small_font or font
+        self.bind("<Configure>", self._on_configure)
+
+    def _on_configure(self, e):
+        self._cw, self._ch = e.width, e.height
+        self._draw()
+
+    def set_data(self, points):
+        self._data = list(points)
+        self._draw()
+
+    def _draw(self):
+        self.delete("all")
+        w, h = self._cw, self._ch
+        if w < 60 or h < 40:
+            return
+        pad_l = T.S(34)
+        pad_r = T.S(14)
+        pad_t = T.S(14)
+        pad_b = T.S(24)
+        data = getattr(self, "_data", [])
+
+        # 坐标轴与网格
+        for value in (0, 50, 100):
+            y = pad_t + (1 - value / 100.0) * (h - pad_t - pad_b)
+            self.create_line(pad_l, y, w - pad_r, y, fill=T.BORDER_HI,
+                             dash=(2, 4) if value else None)
+            self.create_text(pad_l - T.S(6), y, text=str(value), anchor="e",
+                             fill=T.MUTED, font=self._small)
+
+        if not data:
+            self.create_text(w / 2, h / 2, text="还没有组卷记录，去「模拟组卷」考一次",
+                             fill=T.MUTED, font=self._small)
+            return
+
+        n = len(data)
+        span = max(1, n - 1)
+        xs = []
+        ys = []
+        for i, (_label, value) in enumerate(data):
+            x = pad_l + (w - pad_l - pad_r) * (i / float(span) if n > 1 else 0.5)
+            y = pad_t + (1 - max(0, min(100, value)) / 100.0) * (h - pad_t - pad_b)
+            xs.append(x)
+            ys.append(y)
+
+        if n > 1:
+            points = []
+            for x, y in zip(xs, ys):
+                points.extend([x, y])
+            self.create_line(*points, fill=T.ACCENT, width=T.S(2), smooth=False)
+
+        for i, (label, value) in enumerate(data):
+            color = T.GREEN if value >= 80 else (T.YELLOW if value >= 60 else T.RED)
+            r = T.S(4)
+            self.create_oval(xs[i] - r, ys[i] - r, xs[i] + r, ys[i] + r,
+                             fill=color, outline=self._bg, width=T.S(1))
+            if i == n - 1 or n <= 6:
+                self.create_text(xs[i], ys[i] - T.S(11), text=str(value),
+                                 fill=color, font=self._small)
+            if n <= 10:
+                self.create_text(xs[i], h - pad_b + T.S(11), text=str(label),
+                                 fill=T.MUTED, font=self._small)
+
+
 class PieChart(tk.Canvas):
     """饼图：用 create_arc 画扇形，中间显示总数，右侧配图例。
 

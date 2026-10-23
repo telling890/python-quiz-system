@@ -87,6 +87,31 @@ def main():
     assert sum(bal["levels"].values()) == len(paper5)
     ok.append("章节/难度分布统计正确")
 
+    # 11. 加权抽样：高权重题的占比应接近其权重占比
+    import random
+    bucket = [{"id": "heavy"}] + [{"id": "n%d" % i} for i in range(9)]
+    weights = {"heavy": 18.0}
+    for i in range(9):
+        weights["n%d" % i] = 1.0
+    rng = random.Random(2024)
+    picked_heavy = 0
+    trials = 60
+    for _ in range(trials):
+        items = list(bucket)
+        got = exam._weighted_pop(rng, items, weights)
+        if got["id"] == "heavy":
+            picked_heavy += 1
+        assert len(items) == len(bucket) - 1, "抽走一题后列表长度应减 1"
+    assert picked_heavy >= 30, "高权重题被抽中次数偏低：{}/{}".format(picked_heavy, trials)
+    assert picked_heavy > trials / 3.0, "加权后命中率应显著高于等概率（1/10）"
+    ok.append("加权抽样：权重 18:1 的题被抽中 {}/{} 次".format(picked_heavy, trials))
+
+    # 12. weights=None 与不传权重等价（结果可复现）
+    a2 = [q["id"] for q in exam.generate_paper(QUESTIONS, 6, seed=99, weights=None)]
+    b2 = [q["id"] for q in exam.generate_paper(QUESTIONS, 6, seed=99)]
+    assert a2 == b2, "weights=None 应与不传权重等价"
+    ok.append("weights=None 与默认等概率组卷结果一致")
+
     print("组卷系统自检通过（{} 项）：".format(len(ok)))
     for line in ok:
         print("  ✓", line)

@@ -152,7 +152,57 @@ def main():
     assert len(app.store.data.get("exams", [])) >= 1
     checks.append("组卷考试 -> 5 题、交卷 60 分、记录已保存")
 
-    # 12. 主页刷新
+    # 12. 搜索
+    app.start("order")
+    pump(app)
+    app.practice.search_var.set("回文")
+    app.practice.do_search()
+    pump(app)
+    assert app.practice.seq, "搜索没有结果"
+    assert all("回文" in (q["title"] + q["desc"] + q["topic"] + q["id"]) for q in app.practice.seq)
+    checks.append("搜索「回文」-> 命中 {} 题".format(len(app.practice.seq)))
+
+    # 13. 导出学习报告
+    import tempfile
+    from tkinter import filedialog
+    out = os.path.join(tempfile.gettempdir(), "dsh_report_check.csv")
+    if os.path.exists(out):
+        os.remove(out)
+    filedialog.asksaveasfilename = lambda **kw: out
+    app.show("stats")
+    pump(app)
+    app.stats.export_report()
+    pump(app)
+    assert os.path.exists(out), "没有生成 CSV"
+    with open(out, encoding="utf-8-sig") as f:
+        text = f.read()
+    assert "学习报告" in text and "逐题明细" in text and "组卷记录" in text
+    os.remove(out)
+    checks.append("导出学习报告 -> CSV 生成且含汇总/组卷/明细")
+
+    # 14. 自定义题库导入（写 state -> reload qbank -> 出现自定义章节）
+    import json, importlib
+    import qbank as qbanklib
+    demo = [{
+        "id": "C-99", "title": "导入自检测试题", "desc": "输出 ok",
+        "ref": "print('ok')", "cases": [{"stdin": "", "expect": "ok"}],
+    }]
+    norm = [qbanklib.normalize_question(x, i) for i, x in enumerate(demo)]
+    good = [q for q in norm if q]
+    assert len(good) == 1
+    folder = os.path.dirname(qbanklib.CUSTOM_FILE)
+    os.makedirs(folder, exist_ok=True)
+    with open(qbanklib.CUSTOM_FILE, "w", encoding="utf-8") as f:
+        json.dump(good, f, ensure_ascii=False)
+    importlib.reload(qbanklib)
+    ids = [c["id"] for c in qbanklib.CHAPTERS]
+    assert "custom" in ids, "重新加载后没有自定义章节"
+    assert any(q["id"] == "C-99" for q in qbanklib.QUESTIONS)
+    os.remove(qbanklib.CUSTOM_FILE)
+    importlib.reload(qbanklib)
+    checks.append("自定义题库导入 -> 出现自定义章节，删除后恢复")
+
+    # 15. 主页刷新
     app.show("home")
     pump(app)
     assert app.home.stat_values["solved"].cget("text").startswith("0")

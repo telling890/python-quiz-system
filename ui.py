@@ -1,15 +1,16 @@
 # -*- coding: utf-8 -*-
 """主界面：侧边导航 + 主页 / 刷题页 / 学习统计。"""
 
+import os
 import queue
 import threading
 
 import tkinter as tk
-from tkinter import ttk, messagebox
+from tkinter import ttk, messagebox, filedialog
 
 import theme as T
 from widgets import (RoundButton, Pill, NavItem, ProgressBar, ScrollFrame,
-                       CodeEditor, PieChart)
+                       CodeEditor, PieChart, LineChart)
 import exam as examlib
 from ui_exam import ExamSetupView, ExamResultView
 from qbank import QUESTIONS, CHAPTERS
@@ -83,6 +84,7 @@ class App(tk.Tk):
         self.bind_all("<Control-Return>", lambda e: self.practice.run_tests())
         self.bind_all("<Alt-Right>", lambda e: self.practice.next_q())
         self.bind_all("<Alt-Left>", lambda e: self.practice.prev_q())
+        self.bind_all("<Control-f>", lambda e: self._focus_search())
 
         self.refresh_global()
         self.show("home")
@@ -112,6 +114,92 @@ class App(tk.Tk):
         st.map("Dark.Vertical.TScrollbar",
                background=[("active", T.BORDER_HI)],
                arrowcolor=[("active", T.TEXT)])
+
+    def import_bank(self):
+        """导入 JSON 格式的自定义题库，写入 state 目录，重启后并入「自定义题库」章节。"""
+        import json as _json
+
+        path = filedialog.askopenfilename(
+            title="选择题库文件（JSON）",
+            filetypes=[("JSON 题库", "*.json"), ("所有文件", "*.*")])
+        if not path:
+            return
+        try:
+            with open(path, encoding="utf-8-sig") as f:
+                data = _json.load(f)
+        except Exception as e:
+            messagebox.showerror("导入失败", "文件不是合法的 JSON：\n{}".format(e))
+            return
+
+        items = data.get("questions") if isinstance(data, dict) else data
+        if not isinstance(items, list):
+            messagebox.showerror("导入失败", "JSON 顶层应该是题目数组，或带 questions 字段的对象。")
+            return
+
+        import qbank as qbanklib
+        good = []
+        for i, raw in enumerate(items):
+            q = qbanklib.normalize_question(raw, i)
+            if q:
+                good.append(q)
+        if not good:
+            messagebox.showerror(
+                "导入失败",
+                "没有可用的题目。每道题至少要有 title / desc / ref / cases 四个字段。")
+            return
+
+        # 校验参考答案：跑一遍用例，提示有多少题答案对不上
+        bad = []
+        for q in good:
+            ok = True
+            for case in q["cases"]:
+                result = run_case(q["ref"], case)
+                if result.get("status") != "pass":
+                    ok = False
+                    break
+            if not ok:
+                bad.append(q["id"])
+
+        folder = os.path.dirname(qbanklib.CUSTOM_FILE)
+        if not os.path.isdir(folder):
+            os.makedirs(folder)
+        try:
+            with open(qbanklib.CUSTOM_FILE, "w", encoding="utf-8") as f:
+                _json.dump(good, f, ensure_ascii=False, indent=1)
+        except Exception as e:
+            messagebox.showerror("导入失败", "写入文件时出错：\n{}".format(e))
+            return
+
+        msg = "已导入 {} 道题（共 {} 条，{} 条格式不完整被跳过）。\n\n".format(
+            len(good), len(items), len(items) - len(good))
+        if bad:
+            msg += "注意：有 {} 道题的参考答案没通过自己的用例（{}），\n讲课时可能需要先改一下。\n\n".format(
+                len(bad), "、".join(bad[:5]) + ("…" if len(bad) > 5 else ""))
+        msg += "题库会在重启程序后出现在「自定义题库」章节里。\n现在重启吗？"
+
+        if messagebox.askyesno("导入成功", msg):
+            self._restart()
+
+    def _restart(self):
+        """重启程序（打包版直接重新拉起 exe，源码模式用当前解释器再跑一遍）。"""
+        import subprocess
+        import sys
+        try:
+            if getattr(sys, "frozen", False):
+                subprocess.Popen([sys.executable])
+            else:
+                subprocess.Popen([sys.executable] + sys.argv)
+        except Exception as e:
+            messagebox.showerror("重启失败", "请手动关闭程序再重新打开。\n{}".format(e))
+            return
+        self.destroy()
+
+    def _focus_search(self):
+        """Ctrl+F：跳到搜索框。"""
+        if self.session_mode != "practice":
+            self.start("order")
+        self.practice.search_entry.focus_set()
+        self.practice.search_entry.select_range(0, "end")
 
     # ------------------------------------------------------------ 布局
     def _build_layout(self):
@@ -361,6 +449,9 @@ class HomeView(tk.Frame):
         RoundButton(actions, "继续上次", command=self._continue,
                     bg=T.CARD_HI, fg=T.TEXT, hover=T.BORDER_HI, font=f["button"],
                     padx=20, pady=11).pack(side="left")
+        RoundButton(actions, "导入题库", command=self.app.import_bank,
+                    bg=T.CARD_HI, fg=T.TEXT_DIM, hover=T.BORDER_HI, font=f["small"],
+                    padx=16, pady=11).pack(side="left", padx=(10, 0))
 
         cols = tk.Frame(wrap, bg=T.BG)
         cols.pack(fill="both", expand=True)
@@ -567,6 +658,23 @@ class PracticeView(tk.Frame):
         self.crumb = tk.Label(crumb_bar, text="", bg=T.BG, fg=T.MUTED,
                               font=f["tiny"], anchor="w")
         self.crumb.pack(side="left", padx=(T.S(10), 0))
+
+        # 搜索框：回车按题号 / 标题 / 考点 / 题干过滤
+        search_box = tk.Frame(crumb_bar, bg=T.CARD, highlightbackground=T.BORDER,
+                              highlightthickness=1)
+        search_box.pack(side="right", padx=(T.S(10), 0))
+        tk.Label(search_box, text="⌕", bg=T.CARD, fg=T.MUTED,
+                 font=f["small"]).pack(side="left", padx=(T.S(8), 0))
+        self.search_var = tk.StringVar()
+        self.search_entry = tk.Entry(search_box, textvariable=self.search_var,
+                                     width=16, bg=T.CARD, fg=T.TEXT, relief="flat",
+                                     insertbackground=T.TEXT, font=f["tiny"],
+                                     highlightthickness=0, bd=0)
+        self.search_entry.pack(side="left", padx=(T.S(4), T.S(8)), pady=T.S(4))
+        self.search_entry.bind("<Return>", lambda e: self.do_search())
+        self.search_entry.bind("<Escape>", lambda e: self.search_var.set(""))
+        self.search_entry.bind("<FocusIn>", lambda e: self.search_entry.configure(bg=T.CARD_HI))
+        self.search_entry.bind("<FocusOut>", lambda e: self.search_entry.configure(bg=T.CARD))
 
         self.title_label = tk.Label(head, text="", bg=T.BG, fg=T.TEXT, font=f["h2"],
                                     anchor="w", justify="left")
@@ -898,6 +1006,25 @@ class PracticeView(tk.Frame):
         else:
             self.fav_btn.configure_text("☆ 收藏")
 
+    def do_search(self):
+        """按关键词在当前题库里找题，找到就进入一个新的「搜索结果」序列。"""
+        text = (self.search_var.get() or "").strip()
+        if not text:
+            self.app.toast("输入题号、关键词或考点再回车")
+            return
+        low = text.lower()
+        hits = []
+        for q in self.app.questions:
+            blob = "{} {} {} {}".format(q["id"], q["title"], q["topic"], q["desc"]).lower()
+            if low in blob:
+                hits.append(q)
+        if not hits:
+            self.app.toast("没有找到包含「{}」的题目".format(text))
+            return
+        self.app.session_mode = "search"
+        self.load(hits, 0, "搜索：{}".format(text))
+        self.app.toast("找到 {} 道题".format(len(hits)))
+
     def toggle_fav(self):
         q = self.current()
         if not q:
@@ -1142,6 +1269,9 @@ class StatsView(tk.Frame):
         RoundButton(head, "重置全部进度", command=self.reset_all, bg=T.CARD_HI,
                     fg=T.TEXT_DIM, hover=T.BORDER_HI, font=self.fonts["small"],
                     padx=14, pady=8).pack(side="right")
+        RoundButton(head, "导出学习报告", command=self.export_report, bg=T.CARD_HI,
+                    fg=T.TEXT_DIM, hover=T.BORDER_HI, font=self.fonts["small"],
+                    padx=14, pady=8).pack(side="right")
 
         self.summary = tk.Frame(self, bg=T.BG)
         self.summary.pack(fill="x", padx=40, pady=(6, 18))
@@ -1169,6 +1299,22 @@ class StatsView(tk.Frame):
         charts.grid_columnconfigure(1, weight=1, uniform="chart")
         self.status_chart = self._chart_card(charts, 0, "学习状态分布")
         self.chapter_chart = self._chart_card(charts, 1, "各章已通过")
+
+        trend_card = tk.Frame(self, bg=T.CARD, highlightbackground=T.BORDER,
+                              highlightthickness=1)
+        trend_card.pack(fill="x", padx=40, pady=(0, 12))
+        trend_inner = tk.Frame(trend_card, bg=T.CARD)
+        trend_inner.pack(fill="x", padx=18, pady=10)
+        tip = tk.Frame(trend_inner, bg=T.CARD)
+        tip.pack(fill="x")
+        tk.Label(tip, text="历次组卷得分", bg=T.CARD, fg=T.TEXT,
+                 font=self.fonts["h3"]).pack(side="left")
+        self.trend_hint = tk.Label(tip, text="", bg=T.CARD, fg=T.MUTED,
+                                   font=self.fonts["tiny"])
+        self.trend_hint.pack(side="right")
+        self.trend = LineChart(trend_inner, width=1100, height=132, bg=T.CARD,
+                               font=self.fonts["h3"], small_font=self.fonts["tiny"])
+        self.trend.pack(fill="x", pady=(6, 0))
 
         cols = tk.Frame(self, bg=T.BG)
         cols.pack(fill="x", padx=40)
@@ -1249,6 +1395,83 @@ class StatsView(tk.Frame):
             n = sum(1 for q in c["questions"] if store.is_solved(q["id"]))
             chapter_data.append((c["short"], n, palette[i % len(palette)]))
         self._set_chart(self.chapter_chart, chapter_data)
+
+        history = list(reversed(store.exam_history(10)))
+        points = [(str(i + 1), int(h.get("score", 0))) for i, h in enumerate(history)]
+        self.trend.set_data(points)
+        if history:
+            scores = [int(h.get("score", 0)) for h in history]
+            avg = int(round(sum(scores) / float(len(scores))))
+            self.trend_hint.configure(text="最近 {} 次 · 平均 {} 分 · 最高 {} 分".format(
+                len(scores), avg, max(scores)))
+        else:
+            self.trend_hint.configure(text="还没有组卷记录")
+
+    def export_report(self):
+        """把学习情况导出成 CSV（UTF-8 BOM，Excel 双击可直接打开）。"""
+        import csv
+        import time
+        from tkinter import filedialog
+
+        path = filedialog.asksaveasfilename(
+            title="导出学习报告", defaultextension=".csv",
+            initialfile="学习报告-{}.csv".format(time.strftime("%Y%m%d")),
+            filetypes=[("CSV 文件（Excel 可打开）", "*.csv"), ("所有文件", "*.*")])
+        if not path:
+            return
+
+        store = self.app.store
+        qs = self.app.questions
+        stats = store.stats(qs)
+
+        rows = []
+        rows.append(["学习报告", "Python 程序设计刷题系统"])
+        rows.append(["导出时间", time.strftime("%Y-%m-%d %H:%M")])
+        rows.append(["题目总数", stats["total"]])
+        rows.append(["已通过", stats["solved"]])
+        rows.append(["已练习", stats["tried"]])
+        rows.append(["通过率", "{}%".format(stats["rate"])])
+        rows.append(["总提交次数", stats["attempts"]])
+        rows.append([])
+
+        rows.append(["各章进度"])
+        rows.append(["章节", "题数", "已通过", "通过率"])
+        for c in self.app.chapters:
+            total = len(c["questions"])
+            done = sum(1 for q in c["questions"] if store.is_solved(q["id"]))
+            rate = int(round(done * 100.0 / total)) if total else 0
+            rows.append([c["name"], total, done, "{}%".format(rate)])
+        rows.append([])
+
+        history = store.exam_history(20)
+        if history:
+            rows.append(["组卷记录"])
+            rows.append(["时间", "得分", "通过题数", "总题数", "用时(秒)"])
+            for h in history:
+                rows.append([h.get("finished_at", ""), h.get("score", 0),
+                             h.get("passed", 0), h.get("total", 0),
+                             h.get("seconds", 0)])
+            rows.append([])
+
+        rows.append(["逐题明细"])
+        rows.append(["章节", "题号", "题目", "考点", "难度", "用例数",
+                     "尝试次数", "是否通过", "最近练习"])
+        for q in qs:
+            rec = store.record(q["id"])
+            passed = "是" if rec.get("last") == "pass" else "否"
+            rows.append([
+                q["chapter"], q["id"], q["title"], q["topic"],
+                T.LEVEL_NAMES.get(q["level"], "入门"), len(q["cases"]),
+                rec.get("attempts", 0), passed, rec.get("updated", "") or "-",
+            ])
+
+        try:
+            with open(path, "w", encoding="utf-8-sig", newline="") as f:
+                csv.writer(f).writerows(rows)
+        except Exception as e:
+            messagebox.showerror("导出失败", "写入文件时出错：\n{}".format(e))
+            return
+        self.app.toast("已导出到 {}".format(os.path.basename(path)))
 
     def refresh(self):
         store = self.app.store

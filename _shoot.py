@@ -111,6 +111,12 @@ def main():
             rec["updated"] = "2026-10-21 14:1{}".format(q["no"] % 10)
         for q in qs[n // 4 + 2:n // 4 + 4]:
             app.store.record(q["id"])["seen"] = 1
+    # 造几次组卷记录，让趋势图有内容
+    for i, score in enumerate([45, 58, 52, 66, 61, 74, 70, 82]):
+        app.store.record_exam({"total": 10, "passed": int(round(score / 10.0)),
+                               "score": score, "seconds": 600 + i * 30,
+                               "finished_at": "2026-10-{:02d} 14:0{}".format(12 + i, i)},
+                              {"chapters": ["全部"], "levels": [1, 2, 3], "limit": 20})
     app.store.save()
     app.refresh_global()
 

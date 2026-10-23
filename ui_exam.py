@@ -25,11 +25,13 @@ class ExamSetupView(tk.Frame):
         self.count = 10
         self.limit = 20
         self.level = 0
+        self.weighted = "weighted"      # "weighted" 按错题加权 / "balanced" 章节均衡
         self.chapters = set(c["name"] for c in app.chapters)
         self.count_btns = {}
         self.limit_btns = {}
         self.level_btns = {}
         self.chapter_btns = {}
+        self.weight_btns = {}
         self._build()
 
     # ------------------------------------------------------------ 构建
@@ -54,6 +56,9 @@ class ExamSetupView(tk.Frame):
         self.level_btns = self._row(body, "难度",
                                     [(lv, name) for lv, name in self.LEVELS],
                                     self.level, self._set_level, f)
+        self.weight_btns = self._row(body, "出题方式",
+                                     [("weighted", "按错题加权"), ("balanced", "章节均衡")],
+                                     self.weighted, self._set_weight, f)
         self.limit_btns = self._row(body, "限时",
                                     [(v, name) for v, name in self.LIMITS],
                                     self.limit, self._set_limit, f)
@@ -116,6 +121,10 @@ class ExamSetupView(tk.Frame):
         self.level = value
         self._paint()
 
+    def _set_weight(self, value):
+        self.weighted = value
+        self._paint()
+
     def _set_limit(self, value):
         self.limit = value
         self._paint()
@@ -135,6 +144,8 @@ class ExamSetupView(tk.Frame):
             self._mark(btn, value == self.count)
         for value, btn in self.level_btns.items():
             self._mark(btn, value == self.level)
+        for value, btn in self.weight_btns.items():
+            self._mark(btn, value == self.weighted)
         for value, btn in self.limit_btns.items():
             self._mark(btn, value == self.limit)
         for name, btn in self.chapter_btns.items():
@@ -158,15 +169,34 @@ class ExamSetupView(tk.Frame):
             text="当前范围可用 {} 题（题库共 {} 题）".format(len(pool), len(self.app.questions)))
 
     # ------------------------------------------------------------ 开始
+    def _weights(self):
+        """按学习记录算权重：错过没通过的权重最高，没做过的次之，已通过的权重最低。"""
+        store = self.app.store
+        weights = {}
+        for q in self.app.questions:
+            rec = store.record(q["id"])
+            if rec.get("last") == "pass":
+                weights[q["id"]] = 1.0
+            elif rec.get("attempts", 0) > 0:
+                weights[q["id"]] = 4.0
+            elif rec.get("seen", 0) > 0:
+                weights[q["id"]] = 1.5
+            else:
+                weights[q["id"]] = 2.0
+        return weights
+
     def _start(self):
         levels = {self.level} if self.level else None
+        weights = self._weights() if self.weighted == "weighted" else None
         try:
             paper = examlib.generate_paper(self.app.questions, self.count,
-                                           chapters=self.chapters, levels=levels)
+                                           chapters=self.chapters, levels=levels,
+                                           weights=weights)
         except examlib.NotEnoughQuestions as e:
             self.app.toast(str(e))
             return
         meta = {
+            "weighted": self.weighted == "weighted",
             "chapters": sorted(self.chapters),
             "levels": sorted(levels) if levels else [1, 2, 3],
             "limit": self.limit,

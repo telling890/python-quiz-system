@@ -6,9 +6,9 @@ $ErrorActionPreference = "Continue"
 $root = Split-Path -Parent $PSScriptRoot
 Set-Location $root
 
-$py = $env:PYTHON or "python"
-$pyPdf = $env:PYTHON_PDF or $py        # 需要 import fitz 的解释器
-$node = $env:NODE or "node"
+if ($env:PYTHON) { $py = $env:PYTHON } else { $py = "python" }
+if ($env:PYTHON_PDF) { $pyPdf = $env:PYTHON_PDF } else { $pyPdf = $py }
+if ($env:NODE) { $node = $env:NODE } else { $node = "node" }
 $cli = $env:LO_CLI                     # LibreOffice Kit 的 cli.js
 
 $toc = Join-Path $root "docs\_toc"
