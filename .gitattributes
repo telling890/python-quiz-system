@@ -1,0 +1,20 @@
+# 二进制文件：不做文本转换、不参与 diff
+*.exe  binary
+*.dll  binary
+*.pyd  binary
+*.zip  binary
+*.gz   binary
+*.ico  binary
+*.png  binary
+*.gif  binary
+*.jpg  binary
+*.docx binary
+*.pptx binary
+*.pdf  binary
+
+# 打包出来的运行库必须字节级原样保留（不能被 CRLF 转换）
+dist/** binary
+
+# 源码与文档按文本处理
+*.py   text
+*.md   text

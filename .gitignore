@@ -1,12 +1,13 @@
-# 打包产物（体积大，用 build.py 可重新生成）
-dist/
+# 打包中间产物（dist/Python刷题系统/ 目录版会入库，方便 clone 后直接运行）
 build/
 *.spec
 pylibs/
+dist/*.zip
 
-# Python 缓存
+# Python 缓存（注意：不要用 *.py[cod]，那会连打包出来的 .pyd 扩展模块一起忽略）
 __pycache__/
-*.py[cod]
+*.pyc
+*.pyo
 .venv/
 
 # 运行期临时文件
@@ -23,8 +24,4 @@ desktop.ini
 state.json
 
 # Office 临时锁文件
-~\$*
-
-# 便携版安装包（体积大，但便于直接下载）
-!downloads/
-
+~$*
