@@ -21,6 +21,10 @@ ASSETS = os.path.join(HERE, "assets")
 ICON = os.path.join(ASSETS, "app.ico")
 EXTRA_LIBS = os.path.join(HERE, "pylibs")
 
+# 打包依赖都装在 pylibs 里，本脚本自己也要能 import 到（例如 Pillow 画图标）
+if os.path.isdir(EXTRA_LIBS) and EXTRA_LIBS not in sys.path:
+    sys.path.insert(0, EXTRA_LIBS)
+
 
 def build_env():
     """把项目内的 pylibs 目录加到 PYTHONPATH，用其中的新版 PyInstaller。
