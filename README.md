@@ -10,10 +10,12 @@
 写完代码按 F5 就能跑，程序会用题目自带的测试用例逐条比对输出，通过的题自动记录，没通过的自动进错题本。
 
 > **直接下载**：[便携版 zip](downloads/Python-quiz-system-portable.zip)（8.9 MB，解压后双击 `Python刷题系统.exe`，无需安装 Python）
+> **或者 clone 本仓库**：直接双击 `dist/Python刷题系统/Python刷题系统.exe` 就能运行（目录版已随仓库提供）
 > **在线看文档**：[项目汇报](docs/pdf/5-项目汇报.pdf) · [答辩 PPT](docs/pdf/4-答辩演示.pdf) · [需求](docs/pdf/1-需求说明书.pdf) · [设计](docs/pdf/2-设计文档.pdf) · [测试](docs/pdf/3-测试报告.pdf)
 
-- 可执行文件：解压后的 `Python刷题系统.exe`（免安装目录版，双击运行）
-- 源码运行：`python main.py`；重新打包：`python build.py`（仓库不含 `dist/`，用脚本生成）
+- 可执行文件：`dist/Python刷题系统/Python刷题系统.exe`（免安装目录版，双击运行，约 21 MB）
+- 便携压缩包：`downloads/Python-quiz-system-portable.zip`（8.9 MB，拷贝/分发用这个）
+- 源码运行：`python main.py`；重新打包：`python build.py`
 - 题库：**139 道**（教材第3章 35 + 第4章 17 + 第5章 17，拓展练习 40，进阶算法 30），**338 个测试用例**
 - 自动测试：GitHub Actions 在每次推送时用 Python 3.8 / 3.11 跑题库自检与组卷自检
 
@@ -25,8 +27,8 @@
 
 ## 一、怎么打开
 
-1. 下载 [便携版 zip](downloads/Python-quiz-system-portable.zip) 并解压到任意目录（U 盘也行），
-   双击里面的 `Python刷题系统.exe`。整个文件夹可以拷到任意一台 Windows 电脑，双击即用。
+1. **两种拿法**：下载 [便携版 zip](downloads/Python-quiz-system-portable.zip) 解压，或者直接 `git clone` 本仓库后进 `dist/Python刷题系统/`。
+   双击里面的 `Python刷题系统.exe`，整个文件夹可以拷到 U 盘或任意一台 Windows 电脑。
 2. 如果弹出蓝色的 **「Windows 已保护你的电脑」**（Win11 Smart App Control 对未签名程序的默认提示），
    点 **更多信息 → 仍要运行**。
 3. 启动约 1～2 秒。程序不解压临时文件、不依赖 `%TEMP%`、不写注册表。
