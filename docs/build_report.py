@@ -16,6 +16,7 @@ for p in (ROOT, HERE):
 from docx.shared import Cm, Pt
 from docx.enum.text import WD_ALIGN_PARAGRAPH
 
+import build_docs as BD
 from build_docs import (new_doc, title_page, h1, h2, para, bullet, table,
                         caption, cn, PROJECT, VERSION, DATE)
 from qbank import QUESTIONS, CHAPTERS
@@ -37,8 +38,10 @@ def picture(doc, name, width_cm=15.5, note=None):
 
 
 def build():
+    del BD.TOC_ENTRIES[:]
+    BD.use_pages("report")
     doc = new_doc()
-    title_page(doc, "项目汇报", [
+    marker = title_page(doc, "项目汇报", [
         "版本：{}".format(VERSION),
         "日期：{}".format(DATE),
         "内容：题库建设 · 判题引擎 · 学习闭环 · 模拟组卷 · 质量保障",
@@ -182,10 +185,34 @@ def build():
     ], widths=[7.2, 8.8])
 
     out = os.path.join(HERE, "5-项目汇报.docx")
+    BD.apply_toc(doc, marker)
     doc.save(out)
+    BD.dump_toc("report")
     return out
 
 
+def _args():
+    """解析 --pages / --toc-dir。"""
+    import sys
+    args = sys.argv[1:]
+    for i, a in enumerate(args):
+        val = None
+        if a == "--pages" and i + 1 < len(args):
+            val = args[i + 1]
+        elif a.startswith("--pages="):
+            val = a.split("=", 1)[1]
+        if val:
+            BD.PAGES_DIR = val
+        val = None
+        if a == "--toc-dir" and i + 1 < len(args):
+            val = args[i + 1]
+        elif a.startswith("--toc-dir="):
+            val = a.split("=", 1)[1]
+        if val:
+            BD.TOC_DIR = val
+
+
 if __name__ == "__main__":
+    _args()
     p = build()
     print("生成:", p, "%.1f KB" % (os.path.getsize(p) / 1024.0))

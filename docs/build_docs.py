@@ -16,7 +16,8 @@ if ROOT not in sys.path:
 
 from docx import Document
 from docx.shared import Pt, Cm, RGBColor
-from docx.enum.text import WD_ALIGN_PARAGRAPH
+from docx.enum.text import (WD_ALIGN_PARAGRAPH, WD_TAB_ALIGNMENT, WD_TAB_LEADER,
+                            WD_BREAK)
 from docx.enum.table import WD_TABLE_ALIGNMENT
 from docx.oxml.ns import qn
 from docx.oxml import OxmlElement
@@ -27,6 +28,12 @@ PROJECT = "Python 程序设计刷题系统"
 VERSION = "v1.0"
 DATE = "2026-10-21"
 OUT_DIR = HERE
+
+TOC_ENTRIES = []      # 构建过程中登记的一级/二级标题
+TOC_PAGES = {}        # 标题 -> 页码（由 build_toc_map.py 从 PDF 实测后回填）
+_STEM = "doc"
+PAGES_DIR = None      # --pages 指定的目录（每份文档一个 JSON）
+TOC_DIR = None        # --toc-dir 指定的目录（每份文档导出标题清单）
 
 TOTAL_Q = len(QUESTIONS)
 TOTAL_CASES = sum(len(q["cases"]) for q in QUESTIONS)
@@ -98,14 +105,95 @@ def title_page(doc, subtitle, extra_lines):
         p.alignment = WD_ALIGN_PARAGRAPH.CENTER
         cn(p.add_run(line), "宋体", 11, False, (0x44, 0x44, 0x44))
     doc.add_page_break()
+    marker = doc.add_paragraph()      # 目录锚点：正文构建完再把目录插到它前面
+    add_page_footer(doc)
+    return marker
+
+
+def _field(paragraph, code):
+    """在段落里插入一个 Word 域（用于页码）。"""
+    run = paragraph.add_run()
+    begin = OxmlElement("w:fldChar")
+    begin.set(qn("w:fldCharType"), "begin")
+    instr = OxmlElement("w:instrText")
+    instr.set(qn("xml:space"), "preserve")
+    instr.text = code
+    end = OxmlElement("w:fldChar")
+    end.set(qn("w:fldCharType"), "end")
+    for e in (begin, instr, end):
+        run._r.append(e)
+
+
+def add_page_footer(doc):
+    """页脚居中显示「第 X 页 / 共 Y 页」。"""
+    footer = doc.sections[0].footer
+    p = footer.paragraphs[0]
+    p.alignment = WD_ALIGN_PARAGRAPH.CENTER
+    cn(p.add_run("第 "), "宋体", 9, False, (0x66, 0x66, 0x66))
+    _field(p, "PAGE")
+    cn(p.add_run(" 页 / 共 "), "宋体", 9, False, (0x66, 0x66, 0x66))
+    _field(p, "NUMPAGES")
+    cn(p.add_run(" 页"), "宋体", 9, False, (0x66, 0x66, 0x66))
+
+
+def apply_toc(doc, marker, title="目　录"):
+    """在锚点处插入静态目录（页码由实测回填），然后删掉锚点。"""
+    p = marker.insert_paragraph_before()
+    p.alignment = WD_ALIGN_PARAGRAPH.CENTER
+    cn(p.add_run(title), "黑体", 16, True, (0x1F, 0x2A, 0x44))
+    marker.insert_paragraph_before()
+
+    for level, text in TOC_ENTRIES:
+        line = marker.insert_paragraph_before()
+        line.paragraph_format.tab_stops.add_tab_stop(
+            Cm(15.6 if level == 1 else 15.2), WD_TAB_ALIGNMENT.RIGHT, WD_TAB_LEADER.DOTS)
+        line.paragraph_format.space_after = Pt(2)
+        if level == 2:
+            line.paragraph_format.left_indent = Cm(0.8)
+        run = line.add_run(text)
+        cn(run, "宋体", 10.5 if level == 1 else 10, level == 1,
+           (0x1F, 0x2A, 0x44) if level == 1 else (0x44, 0x44, 0x44))
+        line.add_run("\t")
+        num = line.add_run(str(TOC_PAGES.get(text, "-")))
+        cn(num, "宋体", 10, False, (0x44, 0x44, 0x44))
+
+    brk = marker.insert_paragraph_before()
+    brk.add_run().add_break(WD_BREAK.PAGE)
+    marker._element.getparent().remove(marker._element)
+
+
+def use_pages(stem):
+    """切换当前文档的页码表。"""
+    import json, os
+    TOC_PAGES.clear()
+    if PAGES_DIR:
+        path = os.path.join(PAGES_DIR, stem + ".json")
+        if os.path.exists(path):
+            with open(path, encoding="utf-8") as f:
+                TOC_PAGES.update(json.load(f))
+
+
+def dump_toc(stem):
+    """导出当前文档的标题清单，供量页码脚本使用。"""
+    import json, os
+    if not TOC_DIR:
+        return
+    if not os.path.isdir(TOC_DIR):
+        os.makedirs(TOC_DIR)
+    path = os.path.join(TOC_DIR, stem + ".json")
+    with open(path, "w", encoding="utf-8") as f:
+        json.dump([{"level": l, "text": t} for l, t in TOC_ENTRIES], f,
+                  ensure_ascii=False, indent=1)
 
 
 def h1(doc, text):
     doc.add_heading(text, level=1)
+    TOC_ENTRIES.append((1, text))
 
 
 def h2(doc, text):
     doc.add_heading(text, level=2)
+    TOC_ENTRIES.append((2, text))
 
 
 def para(doc, text, size=10.5, bold=False, indent=True):
@@ -180,8 +268,12 @@ def caption(doc, text):
 
 # ------------------------------------------------------------------ 需求说明书
 def build_requirements():
+    global _STEM
+    _STEM = "req"
+    del TOC_ENTRIES[:]
+    use_pages("req")
     doc = new_doc()
-    title_page(doc, "需求说明书", [
+    marker = title_page(doc, "需求说明书", [
         "版本：{}".format(VERSION),
         "日期：{}".format(DATE),
         "题库来源：《Python 程序设计实验指导与习题解答》第 3～5 章实验",
@@ -332,14 +424,20 @@ def build_requirements():
     ], widths=[3.0, 6.0, 7.0])
 
     path = os.path.join(OUT_DIR, "1-需求说明书.docx")
+    apply_toc(doc, marker)
     doc.save(path)
+    dump_toc(_STEM)
     return path
 
 
 # ------------------------------------------------------------------ 设计文档
 def build_design():
+    global _STEM
+    _STEM = "design"
+    del TOC_ENTRIES[:]
+    use_pages("design")
     doc = new_doc()
-    title_page(doc, "设计文档", [
+    marker = title_page(doc, "设计文档", [
         "版本：{}".format(VERSION),
         "日期：{}".format(DATE),
         "技术栈：Python 3.8 + Tkinter + PyInstaller 5.13.2",
@@ -476,14 +574,20 @@ def build_design():
               "界面章节按钮、主页章节进度、统计表会自动出现，无需改动界面代码。")
 
     path = os.path.join(OUT_DIR, "2-设计文档.docx")
+    apply_toc(doc, marker)
     doc.save(path)
+    dump_toc(_STEM)
     return path
 
 
 # ------------------------------------------------------------------ 测试报告
 def build_test_report():
+    global _STEM
+    _STEM = "test"
+    del TOC_ENTRIES[:]
+    use_pages("test")
     doc = new_doc()
-    title_page(doc, "测试报告", [
+    marker = title_page(doc, "测试报告", [
         "版本：{}".format(VERSION),
         "日期：{}".format(DATE),
         "被测对象：dist\\Python刷题系统\\Python刷题系统.exe",
@@ -606,11 +710,51 @@ def build_test_report():
         bullet(doc, t)
 
     path = os.path.join(OUT_DIR, "3-测试报告.docx")
+    apply_toc(doc, marker)
     doc.save(path)
+    dump_toc(_STEM)
     return path
 
 
+def _load_pages():
+    """解析 --pages <目录> 与 --toc-dir <目录>。"""
+    global PAGES_DIR, TOC_DIR
+    args = sys.argv[1:]
+    for i, a in enumerate(args):
+        val = None
+        if a == "--pages" and i + 1 < len(args):
+            val = args[i + 1]
+        elif a.startswith("--pages="):
+            val = a.split("=", 1)[1]
+        if val:
+            PAGES_DIR = val
+        val = None
+        if a == "--toc-dir" and i + 1 < len(args):
+            val = args[i + 1]
+        elif a.startswith("--toc-dir="):
+            val = a.split("=", 1)[1]
+        if val:
+            TOC_DIR = val
+
+
+def _dump_headings():
+    """把一级/二级标题导出成 JSON，供 build_toc_map.py 量页码。"""
+    import json
+    for i, a in enumerate(sys.argv):
+        if a == "--dump" and i + 1 < len(sys.argv):
+            with open(sys.argv[i + 1], "w", encoding="utf-8") as f:
+                json.dump([{"level": l, "text": t} for l, t in TOC_ENTRIES], f,
+                          ensure_ascii=False, indent=1)
+            return
+        if a.startswith("--dump="):
+            with open(a.split("=", 1)[1], "w", encoding="utf-8") as f:
+                json.dump([{"level": l, "text": t} for l, t in TOC_ENTRIES], f,
+                          ensure_ascii=False, indent=1)
+            return
+
+
 if __name__ == "__main__":
+    _load_pages()
     os.makedirs(OUT_DIR, exist_ok=True)
     p1 = build_requirements()
     p2 = build_design()

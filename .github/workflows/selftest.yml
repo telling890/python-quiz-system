@@ -36,3 +36,48 @@ jobs:
 
       - name: 列出交付物
         run: python -c "import qbank; print('题目', len(qbank.QUESTIONS), '用例', sum(len(q['cases']) for q in qbank.QUESTIONS)); print('章节', [c['name'] for c in qbank.CHAPTERS])"
+
+  build:
+    name: 打包验证（Windows / Python 3.8）
+    runs-on: windows-latest
+    env:
+      PYTHONIOENCODING: utf-8
+      PYTHONLEGACYWINDOWSSTDIO: utf-8
+
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v4
+
+      - name: 安装 Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.8"
+
+      - name: 安装打包依赖
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install --target pylibs "pyinstaller==5.13.2" "pillow>=9.0"
+
+      - name: 打包（先自检题库，再生成图标与 exe）
+        run: python build.py
+
+      - name: 验证产物结构
+        shell: pwsh
+        run: |
+          $exe = "dist/Python刷题系统/Python刷题系统.exe"
+          if (-not (Test-Path $exe)) { throw "没有生成 exe" }
+          $size = (Get-Item $exe).Length / 1MB
+          Write-Output "exe 大小: $([math]::Round($size,2)) MB"
+          $files = (Get-ChildItem "dist/Python刷题系统" -Recurse -File).Count
+          Write-Output "目录版文件数: $files"
+          $zip = "dist/Python刷题系统-便携版.zip"
+          if (-not (Test-Path $zip)) { throw "没有生成便携版 zip" }
+          Write-Output "zip 大小: $([math]::Round((Get-Item $zip).Length/1MB,2)) MB"
+
+      - name: 上传打包产物
+        uses: actions/upload-artifact@v4
+        with:
+          name: Python-quiz-system-onedir
+          path: dist/Python刷题系统
+          retention-days: 7
+          if-no-files-found: error

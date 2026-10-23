@@ -1,0 +1,9 @@
+version: 2
+updates:
+  # 让 GitHub Actions 的版本保持更新（checkout / setup-python / upload-artifact）
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "monthly"
+    commit-message:
+      prefix: "ci"
