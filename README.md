@@ -1,7 +1,7 @@
 # Python 程序设计刷题系统
 
 **简体中文** ｜ [**English**](README.en.md)
-
+- 如果大家对于这个程序还有想要的效果和功能欢迎联系我，我也是00后可以接受梗的，邮箱：zz12@foxmail.com 欢迎骚扰！！！想要一起开发的可以找我！！！
 [![CI](https://github.com/telling890/python-quiz-system/actions/workflows/selftest.yml/badge.svg)](https://github.com/telling890/python-quiz-system/actions/workflows/selftest.yml)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 [![Python](https://img.shields.io/badge/python-3.8%2B-3776AB.svg)](https://www.python.org/)
@@ -318,3 +318,6 @@ Word / PPT 原件在 `docs/`，同时导出了 PDF（GitHub 可直接在线预�
 - 教材《Python 程序设计实验指导与习题解答》提供了第 3～5 章的实验素材
 - [Python100Cases](https://github.com/RichardFu123/Python100Cases) 提供了拓展题的题型参考
 - 界面与交互参考了常见刷题 App 的用法
+
+
+
