@@ -12,8 +12,13 @@ import time
 
 
 def default_path():
-    base = os.environ.get("LOCALAPPDATA") or os.path.expanduser("~")
-    folder = os.path.join(base, "PyQuizState")
+    """进度文件位置：默认 %LOCALAPPDATA%\\PyQuizState，可用 PYQUIZ_STATE_DIR 覆盖。"""
+    custom = os.environ.get("PYQUIZ_STATE_DIR")
+    if custom:
+        folder = os.path.expanduser(custom)
+    else:
+        base = os.environ.get("LOCALAPPDATA") or os.path.expanduser("~")
+        folder = os.path.join(base, "PyQuizState")
     try:
         os.makedirs(folder, exist_ok=True)
     except OSError:
@@ -34,10 +39,29 @@ def _blank_record():
     }
 
 
+def describe_error(exc, path):
+    """把写盘异常翻译成用户能看懂的一句话。"""
+    if isinstance(exc, PermissionError):
+        reason = "没有写入权限（可能被安全软件拦截，或文件被设为只读）"
+    elif isinstance(exc, FileNotFoundError):
+        reason = "保存目录不存在"
+    elif isinstance(exc, OSError) and getattr(exc, "errno", None) == 28:
+        reason = "磁盘空间不足"
+    elif isinstance(exc, ValueError):
+        reason = "进度数据无法序列化"
+    else:
+        reason = str(exc) or exc.__class__.__name__
+    return "{}（{}）".format(reason, path)
+
+
 class Store(object):
     def __init__(self, path=None):
         self.path = path or default_path()
         self.data = {"version": 1, "questions": {}, "last_qid": None, "exams": []}
+        self.last_error = ""
+        self.fail_count = 0
+        self.on_save_error = None     # 写入失败时回调（参数：错误说明）
+        self.on_save_ok = None        # 从失败状态恢复时回调（参数：无）
         self.load()
 
     # ---------------------------------------------------------------- 读写
@@ -54,6 +78,7 @@ class Store(object):
             self.data = {"version": 1, "questions": {}, "last_qid": None, "exams": []}
 
     def save(self):
+        """写盘。成功返回 True；失败返回 False 并把原因记在 last_error。"""
         tmp = self.path + ".tmp"
         try:
             folder = os.path.dirname(self.path)
@@ -61,9 +86,27 @@ class Store(object):
                 os.makedirs(folder, exist_ok=True)
             with io.open(tmp, "w", encoding="utf-8") as f:
                 f.write(json.dumps(self.data, ensure_ascii=False, indent=2))
+                f.flush()
+                os.fsync(f.fileno())
             os.replace(tmp, self.path)
-        except OSError:
-            pass
+        except (OSError, ValueError) as exc:
+            self.last_error = describe_error(exc, self.path)
+            self.fail_count += 1
+            try:                      # 别把写了一半的临时文件留在那里
+                if os.path.exists(tmp):
+                    os.remove(tmp)
+            except OSError:
+                pass
+            if self.on_save_error:
+                self.on_save_error(self.last_error)
+            return False
+
+        recovered = self.fail_count > 0
+        self.fail_count = 0
+        self.last_error = ""
+        if recovered and self.on_save_ok:
+            self.on_save_ok()
+        return True
 
     # ---------------------------------------------------------------- 记录
     def record(self, qid):

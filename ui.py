@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 """主界面：侧边导航 + 主页 / 刷题页 / 学习统计。"""
 
+import io
 import os
 import queue
 import threading
@@ -72,6 +73,9 @@ class App(tk.Tk):
         }
 
         self.store = Store()
+        self._save_warned = False
+        self.store.on_save_error = self._on_save_error
+        self.store.on_save_ok = self._on_save_ok
         self.questions = QUESTIONS
         self.chapters = CHAPTERS
         self.session_chapter = None
@@ -194,6 +198,57 @@ class App(tk.Tk):
             return
         self.destroy()
 
+    # ------------------------------------------------------------ 进度保存
+    def _on_save_error(self, message):
+        """进度写盘失败：侧栏常驻红字提醒，并在第一次失败时弹窗说明。"""
+        if getattr(self, "save_warning", None) is not None:
+            self.save_warning.configure(text="⚠ 进度未保存\n点击查看原因")
+            self.save_warning.pack(fill="x", pady=(0, 6), before=self.progress_label)
+        self._log_save_error(message)
+        if not self._save_warned:
+            self._save_warned = True
+            try:
+                messagebox.showwarning(
+                    "进度没能保存",
+                    "刚才的学习记录没有写入磁盘。\n\n{}\n\n"
+                    "常见原因：安全软件拦截、目录只读、磁盘空间不足。\n"
+                    "在修复之前，关闭程序后本次进度会丢失。\n\n"
+                    "侧栏会一直显示「⚠ 进度未保存」，点它可再看原因。".format(message))
+            except tk.TclError:
+                pass
+
+    def _on_save_ok(self):
+        """之前失败过、这次写成功了：撤掉告警并提示。"""
+        if getattr(self, "save_warning", None) is not None:
+            self.save_warning.pack_forget()
+            self.save_warning.configure(text="")
+        self._save_warned = False
+        self.toast("进度已恢复保存")
+
+    def show_save_error(self):
+        """点侧栏告警时看详细原因与处理办法。"""
+        message = self.store.last_error or "（没有更多信息）"
+        messagebox.showerror(
+            "进度未能保存",
+            "保存路径：\n{}\n\n原因：\n{}\n\n"
+            "可以这样处理：\n"
+            "· 把进度文件换个位置：设置环境变量 PYQUIZ_STATE_DIR 指向可写目录\n"
+            "· 检查安全软件是否拦截了写文件，或给该目录加白名单\n"
+            "· 确认磁盘还有剩余空间".format(self.store.path, message))
+
+    def _log_save_error(self, message):
+        """把失败原因追加到 error.log，方便事后排查。"""
+        import time
+        try:
+            folder = os.path.dirname(self.store.path) or "."
+            if not os.path.isdir(folder):
+                os.makedirs(folder, exist_ok=True)
+            with io.open(os.path.join(folder, "error.log"), "a", encoding="utf-8") as f:
+                f.write("[{}] 进度保存失败：{}\n".format(
+                    time.strftime("%Y-%m-%d %H:%M:%S"), message))
+        except (OSError, ValueError):
+            pass
+
     def _focus_search(self):
         """Ctrl+F：跳到搜索框。"""
         if self.session_mode != "practice":
@@ -259,6 +314,10 @@ class App(tk.Tk):
 
         bottom = tk.Frame(self.sidebar, bg=T.SIDEBAR)
         bottom.pack(side="bottom", fill="x", padx=20, pady=20)
+        self.save_warning = tk.Label(bottom, text="", bg=T.SIDEBAR, fg=T.RED,
+                                     font=self.fonts["tiny"], anchor="w",
+                                     cursor="hand2", justify="left")
+        self.save_warning.bind("<Button-1>", lambda e: self.show_save_error())
         self.progress_label = tk.Label(bottom, text="已通过 0 / 20", bg=T.SIDEBAR,
                                        fg=T.MUTED, font=self.fonts["tiny"], anchor="w")
         self.progress_label.pack(fill="x", pady=(0, 8))

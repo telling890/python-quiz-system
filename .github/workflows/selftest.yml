@@ -31,8 +31,11 @@ jobs:
       - name: 题库自检（139 题 / 338 用例）
         run: python selftest.py
 
-      - name: 组卷系统自检（10 项）
+      - name: 组卷系统自检（12 项）
         run: python _test_exam.py
+
+      - name: 进度保存自检（无界面）
+        run: python _test_store.py --no-ui
 
       - name: 列出交付物
         run: python -c "import qbank; print('题目', len(qbank.QUESTIONS), '用例', sum(len(q['cases']) for q in qbank.QUESTIONS)); print('章节', [c['name'] for c in qbank.CHAPTERS])"
