@@ -1,5 +1,7 @@
 # Python Quiz System
 
+[**简体中文**](README.md) ｜ **English**
+
 [![CI](https://github.com/telling890/python-quiz-system/actions/workflows/selftest.yml/badge.svg)](https://github.com/telling890/python-quiz-system/actions/workflows/selftest.yml)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 [![Python](https://img.shields.io/badge/python-3.8%2B-3776AB.svg)](https://www.python.org/)
@@ -8,8 +10,6 @@
 A desktop quiz app for the lab exercises of *Python Programming* (chapters 3–5):
 write code, press `F5`, and every built-in test case is checked instantly — passing
 questions are recorded, failures go to the wrong-answer book automatically.
-
-> 中文说明见 [README.md](README.md)
 
 ## Download
 

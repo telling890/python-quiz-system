@@ -1,5 +1,7 @@
 # Python 程序设计刷题系统
 
+**简体中文** ｜ [**English**](README.en.md)
+
 [![CI](https://github.com/telling890/python-quiz-system/actions/workflows/selftest.yml/badge.svg)](https://github.com/telling890/python-quiz-system/actions/workflows/selftest.yml)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 [![Python](https://img.shields.io/badge/python-3.8%2B-3776AB.svg)](https://www.python.org/)
@@ -9,8 +11,8 @@
 把教材《Python 程序设计实验指导与习题解答》第 3～5 章的实验题做成一个可以**边写边判**的桌面刷题程序：
 写完代码按 F5 就能跑，程序会用题目自带的测试用例逐条比对输出，通过的题自动记录，没通过的自动进错题本。
 
-> **English**: [README.en.md](README.en.md) · **演示视频**：[docs/演示视频.mp4](docs/演示视频.mp4)（27 秒，1080p）
-> **直接下载**：[Release 附件](https://github.com/telling890/python-quiz-system/releases/download/v1.0/Python-quiz-system-portable.zip)（8.9 MB，解压后双击 `Python刷题系统.exe`，无需安装 Python）· [仓库内副本](downloads/Python-quiz-system-portable.zip)
+> **演示视频**：[docs/演示视频.mp4](docs/演示视频.mp4)（27 秒，1080p）
+> **直接下载**：[Release 附件](https://github.com/telling890/python-quiz-system/releases/latest/download/Python-quiz-system-portable.zip)（8.9 MB，解压后双击 `Python刷题系统.exe`，无需安装 Python）· [仓库内副本](downloads/Python-quiz-system-portable.zip)
 > **或者 clone 本仓库**：直接双击 `dist/Python刷题系统/Python刷题系统.exe` 就能运行（目录版已随仓库提供）
 > **在线看文档**：[项目汇报](docs/pdf/5-项目汇报.pdf) · [答辩 PPT](docs/pdf/4-答辩演示.pdf) · [需求](docs/pdf/1-需求说明书.pdf) · [设计](docs/pdf/2-设计文档.pdf) · [测试](docs/pdf/3-测试报告.pdf)
 
