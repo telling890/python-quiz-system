@@ -1,6 +1,8 @@
-# Python 程序设计刷题系统
+<a id="top"></a>
 
-**简体中文** ｜ [**English**](README.en.md)
+# Python 程序设计刷题系统 · Python Quiz System
+
+**中文** ｜ [**English** ↓](#english)
 - 如果大家对于这个程序还有想要的效果和功能欢迎联系我，我也是00后可以接受梗的，邮箱：zz12@foxmail.com 欢迎骚扰！！！想要一起开发的可以找我！！！
   
 [![CI](https://github.com/telling890/python-quiz-system/actions/workflows/selftest.yml/badge.svg)](https://github.com/telling890/python-quiz-system/actions/workflows/selftest.yml)
@@ -320,5 +322,70 @@ Word / PPT 原件在 `docs/`，同时导出了 PDF（GitHub 可直接在线预�
 - [Python100Cases](https://github.com/RichardFu123/Python100Cases) 提供了拓展题的题型参考
 - 界面与交互参考了常见刷题 App 的用法
 
+---
 
+<a id="english"></a>
 
+## English
+
+[**中文 ↑**](#top) ｜ **English**
+
+A desktop quiz app for the lab exercises of *Python Programming* (chapters 3–5): write code,
+press `F5`, and every built-in test case is checked instantly — passing questions are recorded,
+failures go into the wrong-answer book automatically.
+
+### Download
+
+**[Python-quiz-system-portable.zip](https://github.com/telling890/python-quiz-system/releases/latest/download/Python-quiz-system-portable.zip)** (~9 MB) —
+unzip anywhere, then double-click `Python刷题系统.exe`. No Python installation, no network,
+no admin rights required.
+
+Alternatively `git clone` this repo and run `dist/Python刷题系统/Python刷题系统.exe` directly
+(the ready-to-run build ships with the repo).
+
+### Features
+
+- **139 questions / 338 test cases** in 5 chapters: program control structures (35), sequences (17),
+  strings (17), extra exercises (40), intro algorithms (30)
+- **Judge engine**: in-process sandboxed execution, 6-second timeout watchdog, normalized output
+  comparison (raw mode keeps leading spaces for ASCII-art questions), categorized error hints
+  (EOF / NameError / timeout), blocked dangerous calls
+- **Learning loop**: wrong-answer book, favourites, statistics with pie charts and a score-trend
+  line, automatic progress and per-question code saving
+- **Mock exams**: choose question count / chapters / difficulty / time limit; chapter-balanced or
+  weak-spot-weighted paper generation; countdown timer, answer view disabled during the exam,
+  graded report with per-question detail
+- **Extras**: keyword search (`Ctrl+F`), CSV export of the study report, custom question bank
+  import (JSON), and a visible warning when progress cannot be written to disk
+- **Packaging**: PyInstaller `--onedir` build (no `%TEMP%` extraction), ~21 MB folder / ~9 MB zip
+
+### Run from source
+
+```bash
+python main.py                # Python 3.8+, stdlib + Tkinter only
+python selftest.py            # question bank self-test (139 questions / 338 cases)
+python _test_exam.py          # exam system self-test (12 checks)
+python _test_store.py --no-ui # progress persistence checks
+python _interact.py           # UI interaction smoke test (15 checks)
+```
+
+### Build the executable
+
+```bash
+python -m pip install --target pylibs -r requirements-build.txt
+python build.py
+```
+
+Output goes to `dist/Python刷题系统/` plus `dist/Python刷题系统-便携版.zip`.
+Do **not** switch to `--onefile`: the single-file bootloader extracts to `%TEMP%` and fails on
+some machines.
+
+### Documentation
+
+Requirements, design, test report, defence slides and project report are in `docs/` (Chinese);
+PDF versions live in `docs/pdf/` and render directly on GitHub. A 27-second demo video is at
+`docs/演示视频.mp4`.
+
+### Licence
+
+[MIT](LICENSE)
