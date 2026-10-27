@@ -2,6 +2,7 @@
 
 **简体中文** ｜ [**English**](README.en.md)
 - 如果大家对于这个程序还有想要的效果和功能欢迎联系我，我也是00后可以接受梗的，邮箱：zz12@foxmail.com 欢迎骚扰！！！想要一起开发的可以找我！！！
+  
 [![CI](https://github.com/telling890/python-quiz-system/actions/workflows/selftest.yml/badge.svg)](https://github.com/telling890/python-quiz-system/actions/workflows/selftest.yml)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 [![Python](https://img.shields.io/badge/python-3.8%2B-3776AB.svg)](https://www.python.org/)
