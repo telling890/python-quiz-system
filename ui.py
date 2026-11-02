@@ -96,6 +96,9 @@ class App(tk.Tk):
 
         self.refresh_global()
         self.show("home")
+        if self.store.migrated:
+            self.after(700, lambda: self.toast(
+                "进度已迁到程序目录：" + self.store.folder))
 
     # ------------------------------------------------------------ 样式
     def _init_style(self):
@@ -1174,6 +1177,9 @@ class PracticeView(tk.Frame):
     def run_tests(self):
         if self._running or not self.seq:
             return
+        if self.trace_pane._running:
+            self.app.toast("正在跟踪执行，等这一轮跑完")
+            return
         q = self.current()
         code = self.editor.get_code()
         if not code.strip():
@@ -1428,6 +1434,29 @@ class StatsView(tk.Frame):
                     fg=T.TEXT_DIM, hover=T.BORDER_HI, font=self.fonts["small"],
                     padx=14, pady=8).pack(side="right")
 
+        # ---- 数据存放位置：进度就存在程序自己的 data/ 里，可随文件夹拷走
+        data_bar = tk.Frame(self, bg=T.CARD, highlightbackground=T.BORDER,
+                            highlightthickness=1)
+        data_bar.pack(fill="x", padx=40, pady=(4, 0))
+        inner = tk.Frame(data_bar, bg=T.CARD)
+        inner.pack(fill="x", padx=16, pady=10)
+        tk.Label(inner, text="进度文件", bg=T.CARD, fg=T.MUTED,
+                 font=f["tiny"]).pack(side="left")
+        where = "程序自带 data 目录（便携）" if self.app.store.portable else (
+            "自定义目录" if os.environ.get("PYQUIZ_STATE_DIR") else "系统用户目录")
+        self.data_label = tk.Label(inner, text="{} · {}".format(where, self.app.store.path),
+                                    bg=T.CARD, fg=T.TEXT_DIM, font=f["tiny"])
+        self.data_label.pack(side="left", padx=(10, 0))
+        RoundButton(inner, "导入进度…", command=self.import_progress, bg=T.CARD_HI,
+                    fg=T.TEXT_DIM, hover=T.BORDER_HI, font=f["tiny"],
+                    padx=12, pady=5).pack(side="right")
+        RoundButton(inner, "导出进度…", command=self.export_progress, bg=T.CARD_HI,
+                    fg=T.TEXT_DIM, hover=T.BORDER_HI, font=f["tiny"],
+                    padx=12, pady=5).pack(side="right", padx=(0, 8))
+        RoundButton(inner, "打开文件夹", command=self.open_data_folder, bg=T.CARD_HI,
+                    fg=T.TEXT_DIM, hover=T.BORDER_HI, font=f["tiny"],
+                    padx=12, pady=5).pack(side="right", padx=(0, 8))
+
         self.summary = tk.Frame(self, bg=T.BG)
         self.summary.pack(fill="x", padx=40, pady=(6, 18))
         self.tiles = {}
@@ -1561,6 +1590,54 @@ class StatsView(tk.Frame):
                 len(scores), avg, max(scores)))
         else:
             self.trend_hint.configure(text="还没有组卷记录")
+
+    # ------------------------------------------------------------ 数据位置
+    def open_data_folder(self):
+        """在资源管理器里打开数据目录（用户可以直接拷走/备份）。"""
+        folder = self.app.store.folder
+        try:
+            if os.name == "nt":
+                os.startfile(folder)
+            else:
+                self.app.toast("数据目录：" + folder)
+        except OSError as exc:
+            messagebox.showerror("打开失败", "打不开文件夹：{}".format(exc), parent=self)
+
+    def export_progress(self):
+        """把整份进度导出成一个 JSON，用来备份或换机。"""
+        import time
+        path = filedialog.asksaveasfilename(
+            parent=self, title="导出进度", defaultextension=".json",
+            initialfile="刷题进度-{}.json".format(time.strftime("%Y%m%d")),
+            filetypes=[("进度文件", "*.json"), ("所有文件", "*.*")])
+        if not path:
+            return
+        ok, err = self.app.store.export_to(path)
+        if ok:
+            self.app.toast("进度已导出：" + os.path.basename(path))
+        else:
+            messagebox.showerror("导出失败", err, parent=self)
+
+    def import_progress(self):
+        """从导出的 JSON 恢复进度（会覆盖当前进度，先确认）。"""
+        path = filedialog.askopenfilename(
+            parent=self, title="导入进度",
+            filetypes=[("进度文件", "*.json"), ("所有文件", "*.*")])
+        if not path:
+            return
+        if not messagebox.askyesno(
+                "导入进度",
+                "会用这个文件覆盖当前进度（收藏、错题、代码、草稿都会一起替换），继续吗？",
+                parent=self):
+            return
+        ok, err = self.app.store.import_from(path)
+        if not ok:
+            messagebox.showerror("导入失败", err, parent=self)
+            return
+        self.app.toast("进度已导入")
+        self.app.free._loaded = False       # 让自由编程页重新读草稿
+        self.app.refresh_global()
+        self.refresh()
 
     def export_report(self):
         """把学习情况导出成 CSV（UTF-8 BOM，Excel 双击可直接打开）。"""

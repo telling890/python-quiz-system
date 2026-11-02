@@ -22,6 +22,8 @@
 import json
 import os
 
+import store as storelib
+
 from bank_ch5 import QUESTIONS as _CH5
 from bank_extra import QUESTIONS as _EXTRA
 from bank_algo import QUESTIONS as _ALGO
@@ -35,8 +37,8 @@ try:
 except ImportError:
     _CH4 = []
 
-CUSTOM_FILE = os.path.join(os.environ.get("LOCALAPPDATA", os.path.expanduser("~")),
-                           "PyQuizState", "custom_bank.json")
+# 自定义题库跟进度放在同一个数据目录里，这样整个文件夹拷走时它也跟着走
+CUSTOM_FILE = os.path.join(os.path.dirname(storelib.default_path()), "custom_bank.json")
 CUSTOM_NAME = "自定义题库"
 CUSTOM_SHORT = "自定义"
 

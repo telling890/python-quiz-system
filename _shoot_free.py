@@ -68,7 +68,11 @@ for n in (97, 360, 1024):
 
 def main():
     _enable_dpi_awareness()
+    import ui as uimod
     from ui import App
+
+    # 冒烟测试不能弹模态框：确认框一律当「是」
+    uimod.messagebox.askyesno = lambda *a, **k: True
 
     app = App()
     app.attributes("-topmost", True)

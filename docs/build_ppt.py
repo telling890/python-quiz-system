@@ -485,9 +485,9 @@ def build():
 
     # 16 质量
     s = new_slide(prs)
-    slide_title(s, "质量保障：能自动测的都自动测了", "四类测试，全部通过")
+    slide_title(s, "质量保障：能自动测的都自动测了", "题库自检 + 七类自动检查，全部通过")
     nums = [("{}".format(TOTAL_Q), "道题自检", GREEN), ("{}".format(TOTAL_CASES), "个用例", ACCENT),
-            ("10", "组卷自检", YELLOW), ("13 + 10", "交互 + 边界", PURPLE)]
+            ("12", "组卷自检", YELLOW), ("62", "自动测试项合计", PURPLE)]
     for i, (v, label, color) in enumerate(nums):
         x = 0.9 + i * 3.0
         card(s, x, 1.6, 2.7, 1.15)
@@ -496,13 +496,16 @@ def build():
 
     rows = [
         ["题库自检", "参考答案跑自己的用例", "{} 题 / {} 用例".format(TOTAL_Q, TOTAL_CASES), "全部通过"],
-        ["组卷自检", "随机性/覆盖/过滤/评分/限时", "10 项", "全部通过"],
-        ["交互测试", "判题、错题、收藏、统计、组卷", "13 项", "全部通过"],
+        ["组卷自检", "随机性/覆盖/过滤/评分/限时", "12 项", "全部通过"],
+        ["执行过程追踪", "行号/变量/输出、步数与超时兜底", "12 项", "全部通过"],
+        ["网页版接口", "判题/追踪/进度回写/安全边界", "12 项", "全部通过"],
+        ["交互测试", "判题、错题、收藏、统计、组卷、自由编程", "16 项", "全部通过"],
         ["边界测试", "死循环、输入不足、语法错误、危险调用", "10 项", "全部通过"],
-        ["打包验证", "启动、图标、进度、高分屏、TEMP 无关", "7 项", "全部通过"],
+        ["数据落盘", "便携优先、只读兜底、迁移、导出导入", "8 项", "全部通过"],
+        ["打包验证", "启动、图标、进度、高分屏、web 资源", "7 项", "全部通过"],
     ]
-    shape = s.shapes.add_table(len(rows) + 1, 4, Inches(0.9), Inches(3.05),
-                               Inches(11.5), Inches(0.44 * (len(rows) + 1)))
+    shape = s.shapes.add_table(len(rows) + 1, 4, Inches(0.9), Inches(2.95),
+                               Inches(11.5), Inches(0.36 * (len(rows) + 1)))
     tbl = shape.table
     for i, w in enumerate([2.3, 6.2, 1.9, 1.6]):
         tbl.columns[i].width = Emu(int(Inches(w)))
@@ -538,6 +541,10 @@ def build():
         textbox(s, 8.35, y, 1.5, 0.4, v, 15, True, ACCENT)
         textbox(s, 9.9, y + 0.05, 3.2, 0.5, label, 10.5, False, DIM)
     textbox(s, 8.35, 6.55, 4.6, 0.4, "首次运行如遇 SmartScreen：更多信息 → 仍要运行", 9.5, False, YELLOW)
+    card(s, 0.62, 6.5, 7.4, 0.55, fill=CARD_HI, line=ACCENT)
+    textbox(s, 0.95, 6.62, 7.0, 0.36,
+            "进度就存在程序旁边的 data\\ 目录：整个文件夹拷走，进度和题库一起带走",
+            10, False, TEXT)
 
     # 18 总结
     s = new_slide(prs)

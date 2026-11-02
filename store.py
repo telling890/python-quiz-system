@@ -1,29 +1,106 @@
 # -*- coding: utf-8 -*-
-"""学习进度持久化：收藏、错题、通过状态、上次写的代码。
+"""学习进度持久化：收藏、错题、通过状态、上次写的代码、自由编程草稿与片段。
 
-保存在 %LOCALAPPDATA%\\PyQuizState\\state.json，不写在 exe 目录里，
-避免程序放在只读目录（如 Program Files）时无法保存。
+存放位置按这个顺序决定：
+1. 环境变量 PYQUIZ_STATE_DIR（想放到别处时用）
+2. 程序自己的 data/ 目录 —— 便携：整个文件夹拷到 U 盘或别的电脑，进度跟着走
+3. %LOCALAPPDATA%\\PyQuizState —— 程序目录不可写（放在 Program Files 等位置）时兜底
+
+旧版本的数据在 %LOCALAPPDATA%\\PyQuizState 里，第一次用新位置时会自动迁移过来。
 """
 
 import io
 import os
 import json
+import shutil
 import time
 
+import sys
 
-def default_path():
-    """进度文件位置：默认 %LOCALAPPDATA%\\PyQuizState，可用 PYQUIZ_STATE_DIR 覆盖。"""
+STATE_NAME = "state.json"
+DATA_DIRNAME = "data"
+LEGACY_DIRNAME = "PyQuizState"
+
+
+def app_dir():
+    """程序所在目录：打包后是 exe 所在目录，源码运行时是本文件所在目录。"""
+    if getattr(sys, "frozen", False):
+        return os.path.dirname(os.path.abspath(sys.executable))
+    return os.path.dirname(os.path.abspath(__file__))
+
+
+def portable_dir(app_root=None):
+    """便携目录：程序旁边的 data/。"""
+    return os.path.join(app_root or app_dir(), DATA_DIRNAME)
+
+
+def legacy_dir(base=None):
+    """旧版本（也是兜底）的位置：%LOCALAPPDATA%\\PyQuizState。"""
+    root = base if base is not None else (os.environ.get("LOCALAPPDATA")
+                                          or os.path.expanduser("~"))
+    return os.path.join(root, LEGACY_DIRNAME)
+
+
+def _writable(folder):
+    """真的写一个探针文件，确认这个目录能写（只看权限位不准）。"""
+    try:
+        if not os.path.isdir(folder):
+            os.makedirs(folder, exist_ok=True)
+        probe = os.path.join(folder, ".pyquiz-write-test")
+        with open(probe, "w", encoding="utf-8") as f:
+            f.write("ok")
+        os.remove(probe)
+        return True
+    except OSError:
+        return False
+
+
+def _first_writable(*folders):
+    for folder in folders:
+        if folder and _writable(folder):
+            return folder
+    return os.path.expanduser("~")
+
+
+def default_path(app_root=None, fallback_root=None):
+    """进度文件位置，返回值一定带完整文件名。"""
     custom = os.environ.get("PYQUIZ_STATE_DIR")
     if custom:
-        folder = os.path.expanduser(custom)
-    else:
-        base = os.environ.get("LOCALAPPDATA") or os.path.expanduser("~")
-        folder = os.path.join(base, "PyQuizState")
+        folder = _first_writable(os.path.expanduser(custom))
+        return os.path.join(folder, STATE_NAME)
+
+    folder = _first_writable(portable_dir(app_root), legacy_dir(fallback_root))
+    return os.path.join(folder, STATE_NAME)
+
+
+def _copy_if_missing(target, source):
+    """把旧位置的同名文件搬到新位置（新位置已有文件时不动）。"""
     try:
-        os.makedirs(folder, exist_ok=True)
+        if os.path.exists(target) or not os.path.isfile(source):
+            return False
+        folder = os.path.dirname(target)
+        if folder and not os.path.isdir(folder):
+            os.makedirs(folder, exist_ok=True)
+        shutil.copy2(source, target)
+        return True
     except OSError:
-        folder = os.path.expanduser("~")
-    return os.path.join(folder, "state.json")
+        return False
+
+
+def migrate_legacy(target_path, fallback_root=None):
+    """把 %LOCALAPPDATA%\\PyQuizState 里的 state.json / custom_bank.json 迁到新位置。
+
+    返回被迁移过来的文件名列表；新位置已有数据时返回空列表（不去覆盖）。
+    """
+    folder = os.path.dirname(target_path)
+    old = legacy_dir(fallback_root)
+    if os.path.abspath(folder) == os.path.abspath(old):
+        return []
+    moved = []
+    for name in (STATE_NAME, "custom_bank.json"):
+        if _copy_if_missing(os.path.join(folder, name), os.path.join(old, name)):
+            moved.append(name)
+    return moved
 
 
 def _blank_record():
@@ -55,8 +132,14 @@ def describe_error(exc, path):
 
 
 class Store(object):
-    def __init__(self, path=None):
-        self.path = path or default_path()
+    def __init__(self, path=None, app_root=None, fallback_root=None):
+        self.migrated = []
+        if path is None:
+            self.path = default_path(app_root, fallback_root)
+            # 新位置还没有数据时，把老位置（%LOCALAPPDATA%）的进度搬过来
+            self.migrated = migrate_legacy(self.path, fallback_root)
+        else:
+            self.path = path
         self.data = {"version": 1, "questions": {}, "last_qid": None, "exams": [],
                      "free": {"code": "", "stdin": ""}, "snippets": []}
         self.last_error = ""
@@ -64,6 +147,47 @@ class Store(object):
         self.on_save_error = None     # 写入失败时回调（参数：错误说明）
         self.on_save_ok = None        # 从失败状态恢复时回调（参数：无）
         self.load()
+
+    # ---------------------------------------------------------------- 位置
+    @property
+    def folder(self):
+        """数据所在目录（设置页展示、打开文件夹用）。"""
+        return os.path.dirname(os.path.abspath(self.path))
+
+    @property
+    def portable(self):
+        """数据是否就存在程序自己的 data/ 目录里。"""
+        return os.path.basename(self.folder) == DATA_DIRNAME
+
+    # ---------------------------------------------------------------- 封存 / 恢复
+    def export_to(self, target):
+        """把当前进度整份导出成一个 JSON（换机、交作业、备份都用它）。"""
+        try:
+            folder = os.path.dirname(os.path.abspath(target))
+            if folder and not os.path.isdir(folder):
+                os.makedirs(folder, exist_ok=True)
+            with io.open(target, "w", encoding="utf-8") as f:
+                f.write(json.dumps(self.data, ensure_ascii=False, indent=2))
+            return True, ""
+        except (OSError, ValueError) as exc:
+            return False, describe_error(exc, target)
+
+    def import_from(self, source):
+        """从导出的 JSON 恢复进度；格式不对就不动现有数据。"""
+        try:
+            with io.open(source, "r", encoding="utf-8-sig") as f:
+                data = json.load(f)
+        except (OSError, ValueError) as exc:
+            return False, describe_error(exc, source)
+        if not (isinstance(data, dict) and isinstance(data.get("questions"), dict)):
+            return False, "这个文件不是本程序导出的进度文件"
+        self.data = data
+        self.data.setdefault("free", {"code": "", "stdin": ""})
+        self.data.setdefault("snippets", [])
+        self.data.setdefault("exams", [])
+        if not self.save():
+            return False, self.last_error
+        return True, ""
 
     # ---------------------------------------------------------------- 读写
     def load(self):

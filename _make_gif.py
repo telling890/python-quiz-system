@@ -23,8 +23,9 @@ FRAMES = [
     ("18_web_running.png", "网页版：手机也能刷"),
 ]
 
-WIDTH = 960
+WIDTH = 860
 DURATION = 1400
+COLORS = 96
 
 
 def main():
@@ -40,7 +41,7 @@ def main():
     images = [im.resize((WIDTH, h), Image.LANCZOS) for im in images]
 
     # 转成调色板图像，减小体积
-    frames = [im.convert("P", palette=Image.ADAPTIVE, colors=128) for im in images]
+    frames = [im.convert("P", palette=Image.ADAPTIVE, colors=COLORS) for im in images]
 
     out = os.path.join(SHOTS, "demo.gif")
     frames[0].save(out, save_all=True, append_images=frames[1:],

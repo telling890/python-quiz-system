@@ -22,6 +22,8 @@ desktop.ini
 
 # 本地状态（学习进度，不入库）
 state.json
+data/
+*.json.bak
 
 # Office 临时锁文件
 ~$*

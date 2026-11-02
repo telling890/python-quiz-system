@@ -38,8 +38,10 @@ def shot(app, name):
 
 
 def wait_trace(app, timeout=30):
+    """等 TracePane 的异步追踪跑完。"""
+    pane = app.practice.trace_pane
     t0 = time.time()
-    while app.practice._running and time.time() - t0 < timeout:
+    while pane._running and time.time() - t0 < timeout:
         app.update()
         time.sleep(0.05)
     app.update()

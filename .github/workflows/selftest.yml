@@ -40,6 +40,9 @@ jobs:
       - name: 网页版接口自检（12 项）
         run: python _test_web.py
 
+      - name: 数据落盘自检（8 项）
+        run: python _test_portable.py
+
       - name: 进度保存自检（无界面）
         run: python _test_store.py --no-ui
 
