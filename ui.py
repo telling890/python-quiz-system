@@ -11,8 +11,9 @@ from tkinter import ttk, messagebox, filedialog
 
 import theme as T
 from widgets import (RoundButton, Pill, NavItem, ProgressBar, ScrollFrame,
-                       CodeEditor, PieChart, LineChart)
+                       CodeEditor, PieChart, LineChart, TraceScrubber)
 import exam as examlib
+import tracer
 from ui_exam import ExamSetupView, ExamResultView
 from qbank import QUESTIONS, CHAPTERS
 from store import Store
@@ -86,6 +87,7 @@ class App(tk.Tk):
 
         self.bind_all("<F5>", lambda e: self.practice.run_tests())
         self.bind_all("<Control-Return>", lambda e: self.practice.run_tests())
+        self.bind_all("<F6>", lambda e: self.practice.trace_current())
         self.bind_all("<Alt-Right>", lambda e: self.practice.next_q())
         self.bind_all("<Alt-Left>", lambda e: self.practice.prev_q())
         self.bind_all("<Control-f>", lambda e: self._focus_search())
@@ -672,6 +674,10 @@ class PracticeView(tk.Frame):
         self._running = False
         self._queue = queue.Queue()
         self._hint_visible = False
+        self._trace = None            # 最近一次执行过程追踪的结果
+        self._trace_index = 0         # 当前看到第几步
+        self._trace_syncing = False   # 程序内改滑块时抑制回调
+        self._play_job = None         # 自动播放的 after 句柄
         self._build()
         self._poll()
 
@@ -797,10 +803,14 @@ class PracticeView(tk.Frame):
         tk.Label(bar, text="代码编辑区", bg=T.BG, fg=T.MUTED, font=f["tiny"]).grid(row=0, column=0, sticky="w")
         self.status_label = tk.Label(bar, text="", bg=T.BG, fg=T.MUTED, font=f["small"])
         self.status_label.grid(row=0, column=1, sticky="e", padx=(0, 12))
+        self.trace_btn = RoundButton(bar, "单步执行", command=self.trace_current, bg=T.CARD_HI,
+                                     fg=T.TEXT_DIM, hover=T.BORDER_HI, font=f["tiny"],
+                                     padx=12, pady=5)
+        self.trace_btn.grid(row=0, column=2, sticky="e", padx=(0, 8))
         self.reset_btn = RoundButton(bar, "重置", command=self.reset_code, bg=T.CARD_HI,
                                      fg=T.TEXT_DIM, hover=T.BORDER_HI, font=f["tiny"],
                                      padx=12, pady=5)
-        self.reset_btn.grid(row=0, column=2, sticky="e")
+        self.reset_btn.grid(row=0, column=3, sticky="e")
 
         # ---- 代码编辑器
         self.editor = CodeEditor(self.body, font=f["mono"], font_small=f["tiny"])
@@ -868,6 +878,104 @@ class PracticeView(tk.Frame):
                                   font=(f["mono_s"][0], 9))
         self.answer.tag_configure("text", foreground=T.TEXT_DIM)
         self.answer.tag_configure("dim", foreground=T.MUTED)
+
+        # ---- 执行过程标签页（单步执行 / 执行可视化）
+        self.trace_tab = tk.Frame(self.nb, bg=T.CARD_HI)
+        self.nb.add(self.trace_tab, text="  执行过程  ")
+
+        tr_head = tk.Frame(self.trace_tab, bg=T.CARD_HI)
+        tr_head.pack(fill="x", padx=12, pady=(8, 0))
+        tk.Label(tr_head, text="逐行看代码怎么跑：当前行、变量、已经打印的内容",
+                 bg=T.CARD_HI, fg=T.MUTED, font=f["tiny"]).pack(side="left")
+        RoundButton(tr_head, "用参考答案演示", command=self.trace_ref, bg=T.CARD,
+                    fg=T.TEXT_DIM, hover=T.BORDER_HI, font=f["tiny"],
+                    padx=12, pady=5).pack(side="right")
+        RoundButton(tr_head, "跟踪当前代码  (F6)", command=self.trace_current,
+                    bg=T.ACCENT, fg="#ffffff", hover=T.ACCENT_HI, font=f["tiny"],
+                    padx=14, pady=5).pack(side="right", padx=(0, 8))
+
+        tr_body = tk.Frame(self.trace_tab, bg=T.CARD_HI)
+        tr_body.pack(fill="both", expand=True, padx=12, pady=(8, 0))
+        tr_body.grid_columnconfigure(0, weight=3)
+        tr_body.grid_columnconfigure(1, weight=2)
+        tr_body.grid_rowconfigure(0, weight=1)
+
+        src_box = tk.Frame(tr_body, bg=T.CARD, highlightbackground=T.BORDER,
+                           highlightthickness=1)
+        src_box.grid(row=0, column=0, sticky="nsew", padx=(0, 8))
+        src_box.grid_rowconfigure(0, weight=1)
+        src_box.grid_columnconfigure(1, weight=1)
+        self.tr_ln = tk.Text(src_box, width=4, height=9, bg=T.GUTTER, fg=T.MUTED,
+                             font=f["mono_s"], relief="flat", bd=0, highlightthickness=0,
+                             wrap="none", padx=6, pady=8, cursor="arrow", takefocus=0,
+                             spacing1=1, spacing3=1)
+        self.tr_ln.grid(row=0, column=0, sticky="ns")
+        self.tr_src = tk.Text(src_box, bg=T.CARD, fg=T.TEXT_DIM, font=f["mono_s"],
+                              height=9, relief="flat", bd=0, highlightthickness=0,
+                              wrap="none", padx=10, pady=8, cursor="arrow", takefocus=0,
+                              spacing1=1, spacing3=1)
+        self.tr_src.grid(row=0, column=1, sticky="nsew")
+        trsb = ttk.Scrollbar(src_box, orient="vertical", style="Dark.Vertical.TScrollbar")
+        trsb.grid(row=0, column=2, sticky="ns")
+        trsb.configure(command=lambda *a: (self.tr_src.yview(*a),
+                                           self.tr_ln.yview_moveto(self.tr_src.yview()[0])))
+        self.tr_src.configure(yscrollcommand=lambda first, last: (
+            trsb.set(first, last), self.tr_ln.yview_moveto(first)))
+        self.tr_src.tag_configure("cur", background="#17395f")
+        self.tr_src.tag_raise("cur")
+        self.tr_ln.tag_configure("cur", foreground=T.ACCENT_HI, background="#17395f")
+        for w in (self.tr_ln, self.tr_src):
+            w.bind("<MouseWheel>", self._trace_wheel)
+
+        side = tk.Frame(tr_body, bg=T.CARD_HI)
+        side.grid(row=0, column=1, sticky="nsew")
+        side.grid_columnconfigure(0, weight=1)
+        side.grid_rowconfigure(1, weight=1)
+        side.grid_rowconfigure(3, weight=1)
+        tk.Label(side, text="变量", bg=T.CARD_HI, fg=T.MUTED,
+                 font=f["tiny"]).grid(row=0, column=0, sticky="w")
+        self.tr_vars = tk.Text(side, height=4, bg=T.CARD, fg=T.TEXT_DIM, font=f["mono_s"],
+                               relief="flat", bd=0, highlightthickness=1,
+                               highlightbackground=T.BORDER, wrap="none", padx=10, pady=6,
+                               cursor="arrow", takefocus=0)
+        self.tr_vars.grid(row=1, column=0, sticky="nsew", pady=(2, 0))
+        tk.Label(side, text="已输出", bg=T.CARD_HI, fg=T.MUTED,
+                 font=f["tiny"]).grid(row=2, column=0, sticky="w", pady=(6, 0))
+        self.tr_out = tk.Text(side, height=3, bg=T.CARD, fg=T.TEXT_DIM, font=f["mono_s"],
+                              relief="flat", bd=0, highlightthickness=1,
+                              highlightbackground=T.BORDER, wrap="none", padx=10, pady=6,
+                              cursor="arrow", takefocus=0)
+        self.tr_out.grid(row=3, column=0, sticky="nsew", pady=(2, 0))
+        self.tr_vars.tag_configure("name", foreground="#9cdcfe")
+        self.tr_vars.tag_configure("val", foreground=T.GREEN)
+        self.tr_vars.tag_configure("dim", foreground=T.MUTED)
+        self.tr_out.tag_configure("val", foreground=T.GREEN)
+        self.tr_out.tag_configure("dim", foreground=T.MUTED)
+        for w in (self.tr_vars, self.tr_out, self.tr_ln, self.tr_src):
+            w.configure(state="disabled")
+
+        ctl = tk.Frame(self.trace_tab, bg=T.CARD_HI)
+        ctl.pack(fill="x", padx=12, pady=(8, 10))
+        ctl.grid_columnconfigure(0, weight=1)
+        btns = tk.Frame(ctl, bg=T.CARD_HI)
+        btns.grid(row=0, column=0, sticky="w")
+        self.tr_prev = RoundButton(btns, "◀ 上一步", command=lambda: self.trace_step(-1),
+                                   bg=T.CARD, fg=T.TEXT_DIM, hover=T.BORDER_HI,
+                                   font=f["tiny"], padx=12, pady=5)
+        self.tr_prev.pack(side="left")
+        self.tr_next = RoundButton(btns, "下一步 ▶", command=lambda: self.trace_step(1),
+                                   bg=T.CARD, fg=T.TEXT_DIM, hover=T.BORDER_HI,
+                                   font=f["tiny"], padx=12, pady=5)
+        self.tr_next.pack(side="left", padx=(6, 0))
+        self.tr_play = RoundButton(btns, "▶ 自动播放", command=self.toggle_trace_play,
+                                   bg=T.CARD_HI, fg=T.ACCENT_HI, hover=T.BORDER_HI,
+                                   font=f["tiny"], padx=12, pady=5)
+        self.tr_play.pack(side="left", padx=(6, 0))
+        self.tr_pos = tk.Label(ctl, text="点「跟踪当前代码」开始逐行走一遍",
+                               bg=T.CARD_HI, fg=T.MUTED, font=f["tiny"])
+        self.tr_pos.grid(row=0, column=1, sticky="e")
+        self.tr_scale = TraceScrubber(ctl, command=self._on_trace_scale)
+        self.tr_scale.grid(row=1, column=0, columnspan=2, sticky="ew", pady=(6, 0))
 
         # ---- 底部按钮
         bottom = tk.Frame(self.body, bg=T.BG)
@@ -1044,6 +1152,7 @@ class PracticeView(tk.Frame):
         self.status_label.configure(text="")
         self._clear_results("还没运行。写好代码后按 F5 或点「运行测试」。")
         self._build_answer(q)
+        self._reset_trace()
         self.nb.select(0)
         self.prev_btn.set_enabled(self.pos > 0)
         self.next_btn.set_enabled(self.pos < len(self.seq) - 1)
@@ -1171,6 +1280,8 @@ class PracticeView(tk.Frame):
                 msg = self._queue.get_nowait()
                 if msg[0] == "judge":
                     self._finish_judge(*msg[1:])
+                elif msg[0] == "trace":
+                    self._finish_trace(*msg[1:])
                 else:
                     self._finish_manual(*msg[1:])
         except queue.Empty:
@@ -1255,6 +1366,7 @@ class PracticeView(tk.Frame):
                         diff["expect"] if diff["expect"] is not None else "（缺失）",
                         diff["actual"] if diff["actual"] is not None else "（缺失）"), "tip")
                 t.insert("end", "    提示：判题会忽略行尾空格与空行，但字符、顺序、大小写要一致。\n", "tip")
+                t.insert("end", "    还是想不通？切到「执行过程」逐行走一遍，能看清每一步的变量与输出。\n", "tip")
             elif r["status"] == "error":
                 t.insert("end", "    报错信息：\n", "dim")
                 t.insert("end", _indent(r["error"]) + "\n", "code")
@@ -1274,6 +1386,250 @@ class PracticeView(tk.Frame):
                     total - len(results)), "dim")
             t.insert("end", "\n")
         t.configure(state="disabled")
+
+    # ------------------------------------------------------------ 执行过程
+    def _trace_wheel(self, event):
+        """两个代码视图共用一个滚动条：滚谁都要一起动。"""
+        delta = getattr(event, "delta", 0)
+        if not delta:
+            delta = 120 if getattr(event, "num", 0) == 4 else -120
+        self.tr_src.yview_scroll(int(-delta / 120), "units")
+        self.tr_ln.yview_moveto(self.tr_src.yview()[0])
+        return "break"
+
+    def _trace_stdin(self):
+        """单步执行用的输入：优先用「标准输入」里手填的，否则取第一个用例。"""
+        data = self.stdin_text.get("1.0", "end-1c")
+        if data.strip():
+            return data
+        q = self.current()
+        if q and q.get("cases"):
+            return q["cases"][0].get("stdin", "")
+        return ""
+
+    def trace_current(self):
+        """跟踪编辑器里的代码。"""
+        if not self.seq:
+            return
+        if self._running:
+            self.app.toast("正在运行，等这一轮跑完")
+            return
+        code = self.editor.get_code()
+        if not code.strip():
+            self.app.toast("先写点代码再单步执行吧")
+            return
+        self._start_trace(code, "当前代码")
+
+    def trace_ref(self):
+        """用参考答案做一次执行过程演示。"""
+        q = self.current()
+        if not q:
+            return
+        if self.exam is not None:
+            self.app.toast("模拟考试中不能看参考答案的执行过程")
+            return
+        if self._running:
+            self.app.toast("正在运行，等这一轮跑完")
+            return
+        self._start_trace(q["ref"], "参考答案")
+
+    def _start_trace(self, code, what):
+        self._stop_trace_play()
+        self._running = True
+        self.run_btn.set_enabled(False)
+        self.run_btn.configure_text("运行中…")
+        self.status_label.configure(text="正在跟踪执行…", fg=T.MUTED)
+        self.nb.select(3)
+        self.tr_pos.configure(text="正在跟踪「{}」…".format(what), fg=T.MUTED)
+        stdin_data = self._trace_stdin()
+
+        def job():
+            result = tracer.trace_code(code, stdin_data)
+            self._queue.put(("trace", None, {"code": code, "what": what,
+                                             "result": result}))
+
+        threading.Thread(target=job, daemon=True).start()
+
+    def _finish_trace(self, _q, payload):
+        self._running = False
+        self.run_btn.set_enabled(True)
+        self.run_btn.configure_text("运行测试  (F5)")
+        self._trace = payload
+        self._trace_index = 0
+        result = payload["result"]
+        steps = result["steps"]
+
+        self._render_trace_code(payload["code"])
+        note = tracer.describe(result)
+        if not steps:
+            self.status_label.configure(text=note or "没有记录到执行过程", fg=T.YELLOW)
+            self.tr_pos.configure(text=note or "这段代码没有可执行的语句", fg=T.YELLOW)
+            self._render_vars(None)
+            self._render_out("")
+            self.tr_scale.set_range(0)
+            self._trace_sync_scale(0)
+            return
+
+        self.tr_scale.set_range(max(0, len(steps) - 1))
+        self._trace_sync_scale(0)
+        self._render_trace_step()
+        if note:
+            self.status_label.configure(text=note, fg=T.YELLOW)
+        else:
+            self.status_label.configure(
+                text="跟踪完成：{} 步 · 可拖动时间轴回看".format(len(steps)), fg=T.GREEN)
+
+    def _render_trace_code(self, code):
+        lines = (code or "").replace("\t", "    ").split("\n")
+        numbers = "\n".join("{:>3}".format(i) for i in range(1, len(lines) + 1))
+        for w, text in ((self.tr_ln, numbers), (self.tr_src, "\n".join(lines))):
+            w.configure(state="normal")
+            w.delete("1.0", "end")
+            w.insert("1.0", text)
+            w.configure(state="disabled")
+
+    def _render_trace_step(self):
+        data = self._trace
+        if not data:
+            return
+        steps = data["result"]["steps"]
+        if not steps:
+            return
+        self._trace_index = max(0, min(self._trace_index, len(steps) - 1))
+        idx = self._trace_index
+        step = steps[idx]
+
+        for w in (self.tr_src, self.tr_ln):
+            w.tag_remove("cur", "1.0", "end")
+        line = max(1, int(step.get("line") or 1))
+        start, end = "%d.0" % line, "%d.end" % line
+        self.tr_src.tag_add("cur", start, end)
+        self.tr_ln.tag_add("cur", start, end)
+        for w in (self.tr_src, self.tr_ln):
+            try:
+                w.see(start)
+            except tk.TclError:
+                pass
+        self.tr_ln.yview_moveto(self.tr_src.yview()[0])
+
+        self._render_vars(step)
+        self._render_out(step.get("out", ""))
+
+        title = tracer.step_title(step)
+        if idx == 0 and step.get("event") == "call":
+            title = "开始执行 · " + title
+        self.tr_pos.configure(
+            text="第 {} / {} 步 · {}".format(idx + 1, len(steps), title), fg=T.TEXT_DIM)
+        self._trace_sync_scale(idx)
+
+    def _render_vars(self, step):
+        t = self.tr_vars
+        t.configure(state="normal")
+        t.delete("1.0", "end")
+        if step and step.get("vars"):
+            for name, value in step["vars"]:
+                t.insert("end", name, "name")
+                t.insert("end", " = ", "dim")
+                t.insert("end", value + "\n", "val")
+            if step.get("hidden"):
+                t.insert("end", "… 另有 {} 个变量未显示\n".format(step["hidden"]), "dim")
+        else:
+            t.insert("end", "（这一步还没有变量）\n", "dim")
+        t.configure(state="disabled")
+
+    def _render_out(self, text):
+        t = self.tr_out
+        t.configure(state="normal")
+        t.delete("1.0", "end")
+        if text:
+            t.insert("end", text, "val")
+        else:
+            t.insert("end", "（还没有输出）\n", "dim")
+        t.configure(state="disabled")
+        t.see("end")
+
+    def trace_step(self, delta):
+        steps = ((self._trace or {}).get("result", {}) or {}).get("steps") or []
+        if not steps:
+            self.app.toast("先点「跟踪当前代码」或「用参考答案演示」")
+            return
+        self._stop_trace_play()
+        self._trace_index += delta
+        self._render_trace_step()
+
+    def toggle_trace_play(self):
+        if self._play_job is not None:
+            self._stop_trace_play()
+            return
+        steps = ((self._trace or {}).get("result", {}) or {}).get("steps") or []
+        if not steps:
+            self.app.toast("先点「跟踪当前代码」再播放")
+            return
+        if self._trace_index >= len(steps) - 1:
+            self._trace_index = 0
+            self._render_trace_step()
+        self.tr_play.configure_text("⏸ 暂停")
+        self._play_job = self.after(420, self._play_once)
+
+    def _play_once(self):
+        self._play_job = None
+        steps = ((self._trace or {}).get("result", {}) or {}).get("steps") or []
+        if not steps or self._trace_index >= len(steps) - 1:
+            self._stop_trace_play()
+            return
+        self._trace_index += 1
+        self._render_trace_step()
+        self._play_job = self.after(420, self._play_once)
+
+    def _stop_trace_play(self):
+        if self._play_job is not None:
+            try:
+                self.after_cancel(self._play_job)
+            except Exception:
+                pass
+            self._play_job = None
+        try:
+            self.tr_play.configure_text("▶ 自动播放")
+        except (tk.TclError, AttributeError):
+            pass
+
+    def _on_trace_scale(self, value):
+        if self._trace_syncing:
+            return
+        steps = ((self._trace or {}).get("result", {}) or {}).get("steps") or []
+        if not steps:
+            return
+        try:
+            idx = int(round(float(value)))
+        except (TypeError, ValueError):
+            return
+        self._stop_trace_play()
+        self._trace_index = max(0, min(idx, len(steps) - 1))
+        self._render_trace_step()
+
+    def _trace_sync_scale(self, idx):
+        self._trace_syncing = True
+        try:
+            self.tr_scale.set_value(idx)
+        except (tk.TclError, AttributeError):
+            pass
+        finally:
+            self._trace_syncing = False
+
+    def _reset_trace(self):
+        """换题时清空执行过程，别让上一题的轨迹留在这儿。"""
+        self._stop_trace_play()
+        self._trace = None
+        self._trace_index = 0
+        for w in (self.tr_ln, self.tr_src):
+            w.configure(state="normal")
+            w.delete("1.0", "end")
+            w.configure(state="disabled")
+        self.tr_pos.configure(text="点「跟踪当前代码」开始逐行走一遍", fg=T.MUTED)
+        self._render_vars(None)
+        self._render_out("")
+        self.tr_scale.set_range(0)
+        self._trace_sync_scale(0)
 
     # ------------------------------------------------------------ 参考答案
     def _build_answer(self, q):

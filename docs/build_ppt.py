@@ -303,6 +303,25 @@ def build():
     for i, (head, body) in enumerate(notes):
         note(s, 7.0, 3.15 + i * 0.98, 5.9, head, body, ACCENT, size=11)
 
+    # 9 执行过程（单步可视化）
+    s = new_slide(prs)
+    slide_title(s, "执行过程：把「代码怎么跑」演出来", "判题告诉你哪里不对，单步追踪告诉你为什么不对")
+    picture(s, "crop_trace.png", 0.62, 1.5, 8.2, 2.5)
+    card(s, 0.62, 4.25, 8.2, 2.42)
+    textbox(s, 0.95, 4.42, 7.5, 0.32, "一屏看清每一步", 13, True, ACCENT)
+    textbox(s, 0.95, 4.78, 7.5, 1.75,
+            "· 当前行高亮：循环跑到第几轮、跳进了哪个分支，一眼可见\n"
+            "· 变量快照：每一步都记下全部局部变量（如 i = 3、line = '123'）\n"
+            "· 已输出内容同步累积：能对上「print 到底哪一步才发生」\n"
+            "· 时间轴可拖动，前一步 / 下一步 / 自动播放都能反复回看\n"
+            "· 与判题共用同一份用例：input() 自动喂数据，不用手敲",
+            10, False, DIM, line_spacing=1.45)
+    note(s, 9.1, 1.6, 3.7, "怎么用", "编辑器旁「单步执行」，或直接按 F6", ACCENT, size=11)
+    note(s, 9.1, 2.62, 3.7, "跟踪对象", "自己的代码；也可用参考答案演示", GREEN, size=11)
+    note(s, 9.1, 3.64, 3.7, "安全边界", "与判题同一套沙箱：危险调用拦截、死循环看门狗", YELLOW, size=11)
+    note(s, 9.1, 4.78, 3.7, "实现", "sys.settrace 抓 call/line/return，逐步留快照", PURPLE, size=11)
+    note(s, 9.1, 5.82, 3.7, "自动兜底", "最多记 800 步，超限给明确提示", RED, size=11)
+
     # 9 答案与解析
     s = new_slide(prs)
     slide_title(s, "参考答案与解析：学会，而不只是做对", "教材示范代码的问题也逐条指出")
@@ -389,7 +408,7 @@ def build():
     slide_title(s, "技术架构：分层解耦，数据驱动", "Python 3.8 + Tkinter + PyInstaller 5.13.2")
     layers = [
         ("表现层", "ui.py · widgets.py · theme.py · ui_exam.py", "5 个页面 + 自绘控件 + DPI 缩放", ACCENT),
-        ("业务层", "judge.py · exam.py", "判题执行与比对 · 组卷/限时/评分", GREEN),
+        ("业务层", "judge.py · tracer.py · exam.py", "判题执行与比对 · 执行过程追踪 · 组卷/限时/评分", GREEN),
         ("数据层", "qbank.py · bank_ch3/4/5 · bank_extra · bank_algo", "{} 道题的题干、答案、用例、解析".format(TOTAL_Q), YELLOW),
         ("存储层", "store.py", "进度 / 错题 / 收藏 / 考试历史（原子写入）", PURPLE),
     ]
@@ -499,6 +518,7 @@ def build():
     textbox(s, 0.9, 2.0, 5.5, 2.9,
             "· {} 题四类题库，{} 个用例全部自检通过\n\n"
             "· 判题引擎：沙箱执行 + 超时保护 + 归一化比对\n\n"
+            "· 执行过程可视化：逐行走一遍，看变量怎么变\n\n"
             "· 学习闭环：错题本 / 收藏 / 统计 / 进度保存\n\n"
             "· 模拟组卷：随机出卷 + 限时 + 交卷报告\n\n"
             "· 免安装目录版 + 5 份项目文档".format(TOTAL_Q, TOTAL_CASES),

@@ -34,6 +34,9 @@ jobs:
       - name: 组卷系统自检（12 项）
         run: python _test_exam.py
 
+      - name: 执行过程追踪自检（12 项）
+        run: python _test_trace.py
+
       - name: 进度保存自检（无界面）
         run: python _test_store.py --no-ui
 

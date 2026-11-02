@@ -15,6 +15,7 @@ FRAMES = [
     ("01_home.png", "主页：章节进度"),
     ("03_practice_pass.png", "刷题：写代码"),
     ("02_practice_fail.png", "判题：逐条用例"),
+    ("13_trace.png", "单步执行：变量与输出"),
     ("07_stats.png", "统计：饼图与明细"),
     ("09_exam_setup.png", "组卷：配置范围"),
     ("11_exam_result.png", "交卷：得分报告"),

@@ -536,3 +536,74 @@ class CodeEditor(tk.Frame):
             self.text.tag_lower("current")
         except tk.TclError:
             pass
+
+
+class TraceScrubber(tk.Canvas):
+    """执行过程的时间轴：一条细轨 + 一个拖动点，点哪跳哪。
+
+    ttk.Scale 在暗色主题下很难调成一致的观感，这里直接画：
+    轨道用 BORDER_HI，已走过的部分用 ACCENT，滑块是 ACCENT_HI 的小圆点。
+    """
+
+    def __init__(self, master, command=None, height=None, bg=None):
+        super().__init__(master, height=height or T.S(20),
+                         bg=bg or T.CARD_HI, highlightthickness=0, bd=0, cursor="hand2")
+        self._command = command
+        self._total = 0
+        self._value = 0
+        self.bind("<Configure>", lambda e: self._paint())
+        self.bind("<Button-1>", self._on_pointer)
+        self.bind("<B1-Motion>", self._on_pointer)
+
+    # ---------------------------------------------------------- 对外接口
+    def set_range(self, total):
+        """设置总步数（0 表示还没开始追踪）。"""
+        self._total = max(0, int(total))
+        self._value = max(0, min(self._value, self._total))
+        self._paint()
+
+    def set_value(self, value):
+        """设置当前步号（不会触发 command，避免回环）。"""
+        self._value = max(0, min(int(value), self._total))
+        self._paint()
+
+    def get_value(self):
+        return self._value
+
+    # ---------------------------------------------------------- 内部逻辑
+    def _paint(self):
+        self.delete("all")
+        width = max(1, self.winfo_width())
+        height = max(1, self.winfo_height())
+        cy = height / 2.0
+        pad = T.S(7)
+        x0, x1 = pad, max(pad + 1, width - pad)
+        thickness = max(2, T.S(3))
+        self.create_line(x0, cy, x1, cy, fill=T.BORDER_HI, width=thickness,
+                         capstyle="round")
+        if self._total <= 0:
+            return
+        frac = float(self._value) / float(self._total)
+        xv = x0 + (x1 - x0) * frac
+        if xv > x0:
+            self.create_line(x0, cy, xv, cy, fill=T.ACCENT, width=thickness,
+                             capstyle="round")
+        r = max(4, T.S(6))
+        self.create_oval(xv - r, cy - r, xv + r, cy + r,
+                         fill=T.ACCENT_HI, outline=T.CARD_HI, width=2)
+
+    def _on_pointer(self, event):
+        if self._total <= 0:
+            return None
+        width = max(1, self.winfo_width())
+        pad = T.S(7)
+        x0, x1 = pad, max(pad + 1, width - pad)
+        frac = (float(event.x) - x0) / float(x1 - x0)
+        frac = max(0.0, min(1.0, frac))
+        value = int(round(frac * self._total))
+        if value != self._value:
+            self._value = value
+            self._paint()
+            if self._command:
+                self._command(value)
+        return None
