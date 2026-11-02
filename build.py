@@ -150,6 +150,7 @@ def build_exe():
         "--clean",
         "--name", APP_NAME,
         "--icon", ICON,
+        "--add-data", os.path.join(HERE, "web") + os.pathsep + "web",
         "--distpath", DIST,
         "--workpath", BUILD,
         "--specpath", HERE,

@@ -16,9 +16,11 @@ FRAMES = [
     ("03_practice_pass.png", "刷题：写代码"),
     ("02_practice_fail.png", "判题：逐条用例"),
     ("13_trace.png", "单步执行：变量与输出"),
+    ("16_free.png", "自由编程：练手区"),
     ("07_stats.png", "统计：饼图与明细"),
     ("09_exam_setup.png", "组卷：配置范围"),
     ("11_exam_result.png", "交卷：得分报告"),
+    ("18_web_running.png", "网页版：手机也能刷"),
 ]
 
 WIDTH = 960

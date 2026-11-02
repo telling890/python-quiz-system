@@ -1,0 +1,797 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Python 刷题系统 · 网页版</title>
+<style>
+  :root {
+    --bg: #0f1117; --card: #1a1e29; --card-hi: #232a3a; --border: #2a3142;
+    --gutter: #151924; --text: #e9edf5; --dim: #c2cadb; --muted: #8b93a7;
+    --accent: #4d8df7; --accent-hi: #6ba2ff; --green: #3ddc84; --red: #ff6b6b;
+    --yellow: #f5c451; --purple: #c678dd;
+    --mono: "Cascadia Mono", Consolas, "Courier New", monospace;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--bg); color: var(--text);
+    font-family: "Microsoft YaHei UI", "Microsoft YaHei", system-ui, sans-serif;
+    font-size: 14px;
+  }
+  header {
+    display: flex; align-items: center; gap: 14px; flex-wrap: wrap;
+    padding: 14px 20px; border-bottom: 1px solid var(--border); background: #12151f;
+    position: sticky; top: 0; z-index: 10;
+  }
+  .brand { font-weight: 700; font-size: 17px; }
+  .brand span {
+    background: var(--accent); color: #fff; border-radius: 4px;
+    padding: 2px 7px; margin-right: 8px; font-size: 14px;
+  }
+  .modes { display: flex; gap: 6px; margin-left: 6px; }
+  .mode {
+    padding: 7px 14px; border-radius: 8px; cursor: pointer; color: var(--muted);
+    background: var(--card); border: 1px solid var(--border);
+  }
+  .mode.on { background: var(--card-hi); color: var(--text); border-color: var(--accent); }
+  .spacer { flex: 1; }
+  .stat { color: var(--muted); font-size: 13px; }
+  .stat b { color: var(--green); font-size: 15px; }
+
+  button {
+    font: inherit; cursor: pointer; border-radius: 8px; padding: 8px 14px;
+    background: var(--card-hi); color: var(--text); border: 1px solid var(--border);
+  }
+  button:hover { border-color: #3a4459; }
+  button.primary { background: var(--accent); border-color: var(--accent); color: #fff; font-weight: 600; }
+  button.primary:hover { background: var(--accent-hi); }
+  button.ghost { background: transparent; color: var(--muted); }
+  button:disabled { opacity: .5; cursor: default; }
+  button.mini { padding: 4px 9px; font-size: 12px; border-radius: 6px; }
+
+  main { display: grid; grid-template-columns: 290px 1fr; gap: 16px; padding: 16px 20px 40px; }
+  @media (max-width: 900px) { main { grid-template-columns: 1fr; } }
+
+  .panel { background: var(--card); border: 1px solid var(--border); border-radius: 12px; }
+  .panel h3 { margin: 0; padding: 12px 14px 8px; font-size: 13px; color: var(--muted); font-weight: 600; }
+
+  /* 左侧题目列表 */
+  .chapters { display: flex; flex-wrap: wrap; gap: 6px; padding: 0 12px 10px; }
+  .chip {
+    padding: 4px 10px; border-radius: 999px; font-size: 12px; cursor: pointer;
+    background: var(--card-hi); color: var(--muted); border: 1px solid var(--border);
+  }
+  .chip.on { background: rgba(77,141,247,.18); color: var(--accent-hi); border-color: var(--accent); }
+  .qlist { max-height: calc(100vh - 260px); overflow: auto; padding: 0 8px 10px; }
+  .qitem {
+    display: flex; gap: 8px; align-items: baseline; padding: 8px 10px; border-radius: 8px;
+    cursor: pointer; color: var(--dim);
+  }
+  .qitem:hover { background: var(--card-hi); }
+  .qitem.on { background: rgba(77,141,247,.16); color: #fff; }
+  .qitem .qid { font-family: var(--mono); font-size: 11px; color: var(--muted); min-width: 34px; }
+  .qitem .qtitle { flex: 1; font-size: 13px; line-height: 1.35; }
+  .dot { width: 7px; height: 7px; border-radius: 50%; background: #3a4459; flex: none; }
+  .dot.pass { background: var(--green); }
+  .dot.fail { background: var(--red); }
+
+  /* 题目区 */
+  .qhead { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; padding: 14px 16px 0; }
+  .qhead h2 { margin: 0; font-size: 19px; }
+  .tag { font-size: 11px; padding: 2px 8px; border-radius: 999px; background: var(--card-hi); color: var(--muted); }
+  .tag.lv1 { color: var(--green); } .tag.lv2 { color: var(--yellow); } .tag.lv3 { color: var(--red); }
+  .desc { white-space: pre-wrap; padding: 10px 16px 0; color: var(--dim); line-height: 1.65; }
+  .hint { margin: 10px 16px 0; padding: 10px 12px; border-left: 3px solid var(--yellow);
+          background: rgba(245,196,81,.08); color: var(--yellow); white-space: pre-wrap; display: none; }
+  .hint.show { display: block; }
+
+  /* 编辑器 */
+  .editor-wrap { display: flex; margin: 14px 16px 0; border: 1px solid var(--border); border-radius: 10px; overflow: hidden; background: var(--card); }
+  .gutter {
+    font-family: var(--mono); font-size: 12.5px; line-height: 1.55; color: var(--muted);
+    background: var(--gutter); padding: 10px 8px 10px 10px; text-align: right; user-select: none;
+    white-space: pre; overflow: hidden;
+  }
+  textarea.code {
+    flex: 1; min-height: 300px; border: 0; outline: none; resize: vertical;
+    font-family: var(--mono); font-size: 12.5px; line-height: 1.55;
+    background: var(--card); color: var(--text); padding: 10px 12px; tab-size: 4;
+    white-space: pre; overflow-wrap: normal; overflow-x: auto;
+  }
+  .toolbar { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; padding: 10px 16px 0; }
+  .toolbar .status { margin-left: auto; color: var(--muted); font-size: 12.5px; }
+
+  /* 小面板 */
+  .io { margin: 12px 16px 0; }
+  .io summary { cursor: pointer; color: var(--muted); font-size: 12.5px; }
+  textarea.stdin {
+    width: 100%; min-height: 70px; margin-top: 6px; background: var(--card-hi);
+    color: var(--dim); border: 1px solid var(--border); border-radius: 8px; padding: 8px 10px;
+    font-family: var(--mono); font-size: 12.5px;
+  }
+  .block { margin: 14px 16px 0; }
+  .block h4 { margin: 0 0 8px; font-size: 13px; color: var(--muted); font-weight: 600; }
+  pre.out {
+    margin: 0; background: #12161f; border: 1px solid var(--border); border-radius: 10px;
+    padding: 10px 12px; font-family: var(--mono); font-size: 12.5px; color: var(--dim);
+    overflow: auto; max-height: 220px; white-space: pre-wrap;
+  }
+  .case { border: 1px solid var(--border); border-radius: 10px; padding: 8px 12px; margin-bottom: 8px; background: #12161f; }
+  .case .ok { color: var(--green); font-weight: 600; }
+  .case .bad { color: var(--red); font-weight: 600; }
+  .case .meta { color: var(--muted); font-size: 12px; margin: 4px 0; }
+
+  /* 执行过程 */
+  .trace { display: grid; grid-template-columns: 1.4fr 1fr; gap: 10px; }
+  @media (max-width: 1100px) { .trace { grid-template-columns: 1fr; } }
+  .trace pre.code-view {
+    margin: 0; background: #12161f; border: 1px solid var(--border); border-radius: 10px;
+    padding: 8px 0; font-family: var(--mono); font-size: 12.5px; overflow: auto; max-height: 260px;
+  }
+  .trace pre.code-view .ln { display: block; padding: 0 12px 0 0; }
+  .trace pre.code-view .ln .no {
+    display: inline-block; width: 34px; text-align: right; margin-right: 10px; color: #4b5266;
+  }
+  .trace pre.code-view .ln.cur { background: rgba(77,141,247,.22); }
+  .trace pre.code-view .ln.cur .no { color: var(--accent-hi); }
+  .trace .side pre {
+    margin: 0 0 8px; background: #12161f; border: 1px solid var(--border); border-radius: 10px;
+    padding: 8px 10px; font-family: var(--mono); font-size: 12.5px; color: var(--green);
+    overflow: auto; max-height: 104px; min-height: 40px;
+  }
+  .trace .side .label { color: var(--muted); font-size: 12px; margin: 0 0 4px; }
+  .trace-ctl { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-top: 10px; }
+  .trace-ctl .pos { margin-left: auto; color: var(--dim); font-size: 12.5px; }
+  input[type=range] { width: 100%; accent-color: var(--accent); margin-top: 8px; }
+
+  /* 自由编程 */
+  .free-grid { display: grid; grid-template-columns: 1fr 250px; gap: 16px; }
+  @media (max-width: 900px) { .free-grid { grid-template-columns: 1fr; } }
+  .snips { padding: 0 10px 10px; }
+  .snip { display: flex; align-items: center; gap: 6px; padding: 7px 8px; border-radius: 8px; cursor: pointer; color: var(--dim); font-size: 13px; }
+  .snip:hover { background: var(--card-hi); }
+  .snip .name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .snip .x { color: var(--muted); font-size: 12px; }
+  .empty { color: var(--muted); font-size: 12.5px; padding: 10px; }
+  .toast {
+    position: fixed; left: 50%; bottom: 26px; transform: translateX(-50%);
+    background: var(--card-hi); color: var(--text); border: 1px solid var(--border);
+    padding: 9px 16px; border-radius: 999px; opacity: 0; transition: opacity .2s; pointer-events: none;
+    z-index: 50;
+  }
+  .toast.on { opacity: 1; }
+  .answer pre { white-space: pre-wrap; }
+</style>
+</head>
+<body>
+<header>
+  <div class="brand"><span>PY</span>Python 刷题系统 · 网页版</div>
+  <div class="modes">
+    <div class="mode on" id="modeBank">题库刷题</div>
+    <div class="mode" id="modeFree">自由编程</div>
+  </div>
+  <div class="spacer"></div>
+  <div class="stat" id="stat">已通过 <b>0</b> / 0</div>
+  <button class="ghost mini" id="reload">刷新题库</button>
+</header>
+
+<main id="bankMain">
+  <section class="panel">
+    <h3>章节</h3>
+    <div class="chapters" id="chapters"></div>
+    <h3>题目 <span id="listCount" style="color:#4b5266"></span></h3>
+    <div class="qlist" id="qlist"></div>
+  </section>
+
+  <section>
+    <div class="panel" id="qcard">
+      <div class="qhead">
+        <h2 id="qtitle">载入中…</h2>
+        <span class="tag" id="qlevel"></span>
+        <span class="tag" id="qtopic"></span>
+        <button class="mini ghost" id="hintBtn" style="margin-left:auto">显示提示</button>
+      </div>
+      <div class="desc" id="qdesc"></div>
+      <div class="hint" id="qhint"></div>
+
+      <div class="editor-wrap">
+        <div class="gutter" id="gutter">1</div>
+        <textarea class="code" id="code" spellcheck="false"></textarea>
+      </div>
+      <div class="toolbar">
+        <button class="primary" id="runBtn">运行测试 (Ctrl+Enter)</button>
+        <button id="traceBtn">单步执行</button>
+        <button id="answerBtn">查看参考答案</button>
+        <span class="status" id="status"></span>
+      </div>
+      <div class="io">
+        <details><summary>标准输入（手动运行用，不影响判题）</summary>
+          <textarea class="stdin" id="stdin" spellcheck="false"></textarea>
+        </details>
+      </div>
+      <div class="block"><h4>判题结果</h4><div id="results"><div class="empty">还没运行。</div></div></div>
+      <div class="block answer" id="answerBox" style="display:none">
+        <h4>参考答案 <button class="mini" id="loadRef">载入到编辑器</button></h4>
+        <pre class="out" id="refCode"></pre>
+        <h4 style="margin-top:10px">解析与易错点</h4>
+        <pre class="out" id="explain"></pre>
+      </div>
+      <div class="block">
+        <h4>执行过程 <span id="traceSummary" style="color:#4b5266;font-weight:400"></span></h4>
+        <div class="trace">
+          <pre class="code-view" id="traceCode"><div class="empty">点「单步执行」把代码逐行走一遍。</div></pre>
+          <div class="side">
+            <div class="label">变量</div><pre id="traceVars">—</pre>
+            <div class="label">已输出</div><pre id="traceOut">—</pre>
+          </div>
+        </div>
+        <div class="trace-ctl">
+          <button class="mini" id="tPrev">◀ 上一步</button>
+          <button class="mini" id="tNext">下一步 ▶</button>
+          <button class="mini" id="tPlay">▶ 自动播放</button>
+          <span class="pos" id="tPos"></span>
+        </div>
+        <input type="range" id="tRange" min="0" max="0" value="0">
+      </div>
+      <div style="height:14px"></div>
+    </div>
+  </section>
+</main>
+
+<main id="freeMain" style="display:none">
+  <section class="panel" style="grid-column: 1 / -1">
+    <div class="qhead">
+      <h2>自由编程</h2>
+      <span class="tag">想写什么写什么，自己看输出</span>
+      <button class="mini ghost" id="freeExport" style="margin-left:auto">导出 .py</button>
+      <button class="mini ghost" id="freeClear">清空</button>
+    </div>
+    <div class="free-grid">
+      <div>
+        <div class="editor-wrap">
+          <div class="gutter" id="gutter2">1</div>
+          <textarea class="code" id="code2" spellcheck="false"></textarea>
+        </div>
+        <div class="toolbar">
+          <button class="primary" id="runBtn2">运行 (Ctrl+Enter)</button>
+          <button id="traceBtn2">单步执行</button>
+          <button id="saveSnip">保存片段</button>
+          <span class="status" id="status2"></span>
+        </div>
+        <div class="io">
+          <details><summary>标准输入</summary>
+            <textarea class="stdin" id="stdin2" spellcheck="false"></textarea>
+          </details>
+        </div>
+        <div class="block"><h4>运行结果</h4><pre class="out" id="freeOut">还没运行。</pre></div>
+        <div class="block">
+          <h4>执行过程 <span id="traceSummary2" style="color:#4b5266;font-weight:400"></span></h4>
+          <div class="trace">
+            <pre class="code-view" id="traceCode2"><div class="empty">点「单步执行」看代码怎么跑。</div></pre>
+            <div class="side">
+              <div class="label">变量</div><pre id="traceVars2">—</pre>
+              <div class="label">已输出</div><pre id="traceOut2">—</pre>
+            </div>
+          </div>
+          <div class="trace-ctl">
+            <button class="mini" id="t2Prev">◀ 上一步</button>
+            <button class="mini" id="t2Next">下一步 ▶</button>
+            <button class="mini" id="t2Play">▶ 自动播放</button>
+            <span class="pos" id="t2Pos"></span>
+          </div>
+          <input type="range" id="t2Range" min="0" max="0" value="0">
+        </div>
+      </div>
+      <div class="panel" style="align-self:start">
+        <h3>我的片段</h3>
+        <div class="snips" id="snips"></div>
+      </div>
+    </div>
+    <div style="height:14px"></div>
+  </section>
+</main>
+
+<div class="toast" id="toast"></div>
+
+<script>
+"use strict";
+const $ = (id) => document.getElementById(id);
+const TOKEN = new URLSearchParams(location.search).get("k") || "";
+const apiUrl = (path) => path + (TOKEN ? "?k=" + encodeURIComponent(TOKEN) : "");
+
+function toast(text) {
+  const el = $("toast");
+  el.textContent = text;
+  el.classList.add("on");
+  clearTimeout(toast._t);
+  toast._t = setTimeout(() => el.classList.remove("on"), 1800);
+}
+
+async function api(path, body) {
+  const opt = body === undefined ? {} : {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  };
+  const resp = await fetch(apiUrl(path), opt);
+  let data = null;
+  try { data = await resp.json(); } catch (e) { data = null; }
+  if (!resp.ok || !data || data.ok === false) {
+    throw new Error((data && data.error) || ("HTTP " + resp.status));
+  }
+  return data;
+}
+
+/* ------------------------------------------------ 状态 */
+const state = {
+  bank: null, progress: {}, chapter: "all", qid: null,
+  trace: null, traceIndex: 0, playTimer: null, mode: "bank",
+  free: { code: "", stdin: "" }, snippets: [],
+};
+
+/* ------------------------------------------------ 编辑器（行号 + Tab） */
+function wireEditor(textarea, gutter) {
+  function update() {
+    const n = textarea.value.split("\n").length;
+    let out = "";
+    for (let i = 1; i <= n; i++) out += i + "\n";
+    gutter.textContent = out;
+    gutter.scrollTop = textarea.scrollTop;
+  }
+  textarea.addEventListener("input", update);
+  textarea.addEventListener("scroll", () => { gutter.scrollTop = textarea.scrollTop; });
+  textarea.addEventListener("keydown", (e) => {
+    if (e.key === "Tab") {
+      e.preventDefault();
+      const s = textarea.selectionStart, t = textarea.selectionEnd;
+      textarea.value = textarea.value.slice(0, s) + "    " + textarea.value.slice(t);
+      textarea.selectionStart = textarea.selectionEnd = s + 4;
+      update();
+    }
+  });
+  update();
+  return { get: () => textarea.value, set: (v) => { textarea.value = v || ""; update(); }, update };
+}
+
+const ed = wireEditor($("code"), $("gutter"));
+const ed2 = wireEditor($("code2"), $("gutter2"));
+
+/* ------------------------------------------------ 题库列表 */
+function renderChapters() {
+  const wrap = $("chapters");
+  wrap.innerHTML = "";
+  const all = { id: "all", name: "全部", count: state.bank.questions.length };
+  [all].concat(state.bank.chapters).forEach((c) => {
+    const el = document.createElement("div");
+    el.className = "chip" + (state.chapter === c.id ? " on" : "");
+    el.textContent = (c.short || c.name) + " " + c.count;
+    el.onclick = () => { state.chapter = c.id; renderChapters(); renderList(); };
+    wrap.appendChild(el);
+  });
+}
+
+function visibleQuestions() {
+  if (state.chapter === "all") return state.bank.questions;
+  const c = state.bank.chapters.find((x) => x.id === state.chapter);
+  return c ? state.bank.questions.filter((q) => q.chapter === c.name) : state.bank.questions;
+}
+
+function renderList() {
+  const list = $("qlist");
+  const qs = visibleQuestions();
+  $("listCount").textContent = "(" + qs.length + ")";
+  list.innerHTML = "";
+  qs.forEach((q) => {
+    const item = document.createElement("div");
+    item.className = "qitem" + (q.id === state.qid ? " on" : "");
+    const dotCls = q.last === "pass" ? "pass" : (q.last === "fail" ? "fail" : "");
+    item.innerHTML = '<span class="dot ' + dotCls + '"></span>' +
+      '<span class="qid">' + q.id + '</span>' +
+      '<span class="qtitle"></span>';
+    item.querySelector(".qtitle").textContent = q.title;
+    item.onclick = () => selectQuestion(q.id);
+    list.appendChild(item);
+  });
+}
+
+function selectQuestion(qid) {
+  state.qid = qid;
+  const q = state.bank.questions.find((x) => x.id === qid);
+  if (!q) return;
+  renderList();
+  $("qtitle").textContent = q.id + " " + q.title;
+  $("qlevel").textContent = ["", "入门", "进阶", "挑战"][q.level] || "入门";
+  $("qlevel").className = "tag lv" + q.level;
+  $("qtopic").textContent = q.topic || "";
+  $("qdesc").textContent = q.desc || "";
+  $("qhint").textContent = "提示 · " + (q.hint || "");
+  $("qhint").classList.remove("show");
+  $("hintBtn").textContent = "显示提示";
+  ed.set(q.code || "");
+  $("stdin").value = (q.cases && q.cases[0] ? q.cases[0].stdin : "") || "";
+  $("results").innerHTML = '<div class="empty">还没运行。</div>';
+  $("answerBox").style.display = "none";
+  $("refCode").textContent = q.ref || "";
+  $("explain").textContent = q.explain || "";
+  resetTrace();
+  $("status").textContent = "";
+  localStorage.setItem("pyquiz.qid", qid);
+}
+
+function updateStat(stats) {
+  if (!stats) return;
+  $("stat").innerHTML = "已通过 <b>" + stats.solved + "</b> / " + stats.total;
+}
+
+/* ------------------------------------------------ 判题 */
+function esc(s) {
+  return (s === null || s === undefined) ? "" : String(s);
+}
+
+function renderJudge(outcome) {
+  const box = $("results");
+  box.innerHTML = "";
+  const total = outcome.total;
+  const shown = outcome.results.length;
+  if (outcome.passed) {
+    box.innerHTML = '<div class="case"><span class="ok">✓ 全部 ' + total + ' 个用例通过</span>' +
+      '<div class="meta">可以点下一题，或看看参考答案里的其他写法。</div></div>';
+    return;
+  }
+  outcome.results.forEach((r, i) => {
+    const div = document.createElement("div");
+    div.className = "case";
+    if (r.status === "pass") {
+      div.innerHTML = '<span class="ok">✓ 用例 ' + (i + 1) + ' 通过</span>' +
+        '<div class="meta">输入：' + esc(r.stdin).replace(/\n/g, " ⏎ ") + "</div>";
+    } else {
+      const label = { fail: "输出不同", error: "运行出错", timeout: "运行超时" }[r.status] || "未通过";
+      div.innerHTML = '<span class="bad">✗ 用例 ' + (i + 1) + " " + label + "</span>" +
+        '<div class="meta">输入：' + esc(r.stdin).replace(/\n/g, " ⏎ ") + "</div>";
+      if (r.status === "fail") {
+        div.innerHTML += '<div class="meta">期望输出</div><pre class="out">' + esc(r.expect) + "</pre>" +
+          '<div class="meta">实际输出</div><pre class="out">' + esc(r.actual) + "</pre>";
+        if (r.first_diff) {
+          div.innerHTML += '<div class="meta" style="color:var(--yellow)">第 ' + r.first_diff.line +
+            " 行对不上：期望「" + esc(r.first_diff.expect) + "」，实际「" + esc(r.first_diff.actual) + "」</div>";
+        }
+      } else if (r.status === "error") {
+        div.innerHTML += '<pre class="out">' + esc(r.error) + "</pre>";
+      } else {
+        div.innerHTML += '<div class="meta" style="color:var(--yellow)">很可能写了死循环，或 input() 一直在等数据。</div>';
+      }
+    }
+    box.appendChild(div);
+  });
+  if (shown < total) {
+    const rest = document.createElement("div");
+    rest.className = "empty";
+    rest.textContent = "后面的 " + (total - shown) + " 个用例没有执行（前面的用例未通过）。";
+    box.appendChild(rest);
+  }
+}
+
+async function runJudge() {
+  if (!state.qid) return;
+  const btn = $("runBtn");
+  btn.disabled = true;
+  $("status").textContent = "正在运行…";
+  try {
+    const data = await api("/api/run", { code: ed.get(), qid: state.qid });
+    renderJudge(data.judge);
+    const q = state.bank.questions.find((x) => x.id === state.qid);
+    if (q) q.code = ed.get();
+    await api("/api/attempt", { qid: state.qid, passed: data.judge.passed, code: ed.get() });
+    const fresh = await api("/api/bank");
+    state.bank.stats = fresh.stats;
+    fresh.questions.forEach((nq) => {
+      const old = state.bank.questions.find((x) => x.id === nq.id);
+      if (old) { old.last = nq.last; old.attempts = nq.attempts; }
+    });
+    renderList();
+    updateStat(state.bank.stats);
+    $("status").textContent = data.judge.passed ? "✓ 全部通过" : "还有用例没通过";
+    $("status").style.color = data.judge.passed ? "var(--green)" : "var(--red)";
+  } catch (err) {
+    $("status").textContent = "出错：" + err.message;
+    $("status").style.color = "var(--red)";
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+/* ------------------------------------------------ 执行过程 */
+function resetTrace() {
+  stopPlay();
+  state.trace = null;
+  state.traceIndex = 0;
+  $("traceCode").innerHTML = '<div class="empty">点「单步执行」把代码逐行走一遍。</div>';
+  $("traceVars").textContent = "—";
+  $("traceOut").textContent = "—";
+  $("tPos").textContent = "";
+  $("traceSummary").textContent = "";
+  const range = $("tRange");
+  range.max = 0; range.value = 0;
+}
+
+function traceTargets(prefix) {
+  return {
+    code: $(prefix === "2" ? "traceCode2" : "traceCode"),
+    vars: $(prefix === "2" ? "traceVars2" : "traceVars"),
+    out: $(prefix === "2" ? "traceOut2" : "traceOut"),
+    pos: $(prefix === "2" ? "t2Pos" : "tPos"),
+    range: $(prefix === "2" ? "t2Range" : "tRange"),
+    summary: $(prefix === "2" ? "traceSummary2" : "traceSummary"),
+  };
+}
+
+function renderTraceCode(code, line) {
+  const lines = String(code || "").split("\n");
+  return lines.map((text, i) => {
+    const n = i + 1;
+    const cls = n === line ? "ln cur" : "ln";
+    return '<span class="' + cls + '"><span class="no">' + n + "</span>" +
+      (text.replace(/&/g, "&amp;").replace(/</g, "&lt;") || " ") + "</span>";
+  }).join("");
+}
+
+function renderStep(prefix) {
+  const t = state.trace;
+  if (!t || !t.steps.length) return;
+  const ui = traceTargets(prefix);
+  const i = Math.max(0, Math.min(state.traceIndex, t.steps.length - 1));
+  state.traceIndex = i;
+  const step = t.steps[i];
+  ui.code.innerHTML = renderTraceCode(state.traceCodeText, step.line);
+  const cur = ui.code.querySelector(".ln.cur");
+  if (cur) cur.scrollIntoView({ block: "nearest" });
+  ui.vars.textContent = step.vars.length
+    ? step.vars.map((kv) => kv[0] + " = " + kv[1]).join("\n") +
+      (step.hidden ? "\n… 另有 " + step.hidden + " 个变量" : "")
+    : "（这一步还没有变量）";
+  ui.out.textContent = step.out || "（还没有输出）";
+  ui.pos.textContent = "第 " + (i + 1) + " / " + t.steps.length + " 步 · 第 " + step.line + " 行" +
+    (step.depth > 0 && step.func !== "<module>" ? " · 在 " + step.func + "() 里" : "");
+  ui.range.max = t.steps.length - 1;
+  ui.range.value = i;
+}
+
+function traceStep(delta, prefix) {
+  if (!state.trace || !state.trace.steps.length) return toast("先点「单步执行」");
+  stopPlay();
+  state.traceIndex += delta;
+  renderStep(prefix);
+}
+
+function stopPlay() {
+  if (state.playTimer) {
+    clearInterval(state.playTimer);
+    state.playTimer = null;
+    document.querySelectorAll("#tPlay, #t2Play").forEach((b) => (b.textContent = "▶ 自动播放"));
+  }
+}
+
+function togglePlay(prefix) {
+  if (state.playTimer) { stopPlay(); return; }
+  if (!state.trace || !state.trace.steps.length) return toast("先点「单步执行」");
+  const btn = $(prefix === "2" ? "t2Play" : "tPlay");
+  if (state.traceIndex >= state.trace.steps.length - 1) state.traceIndex = 0;
+  btn.textContent = "⏸ 暂停";
+  state.playTimer = setInterval(() => {
+    if (!state.trace || state.traceIndex >= state.trace.steps.length - 1) { stopPlay(); return; }
+    state.traceIndex += 1;
+    renderStep(prefix);
+  }, 420);
+}
+
+async function runTrace(prefix, code, stdin) {
+  const ui = traceTargets(prefix);
+  ui.summary.textContent = "正在跟踪…";
+  try {
+    const data = await api("/api/trace", { code: code, stdin: stdin });
+    const t = data.trace;
+    state.trace = t;
+    state.traceCodeText = code;
+    state.traceIndex = 0;
+    ui.summary.textContent = data.summary || ("共 " + t.steps.length + " 步");
+    if (!t.steps.length) {
+      ui.code.innerHTML = '<div class="empty">' + (data.summary || "这段代码没有可执行的语句") + "</div>";
+      ui.vars.textContent = "—";
+      ui.out.textContent = "—";
+      ui.pos.textContent = "";
+      return;
+    }
+    renderStep(prefix);
+  } catch (err) {
+    ui.summary.textContent = "出错：" + err.message;
+  }
+}
+
+/* ------------------------------------------------ 自由编程 */
+function renderSnips() {
+  const box = $("snips");
+  box.innerHTML = "";
+  if (!state.snippets.length) {
+    box.innerHTML = '<div class="empty">还没有片段<br>写完一段就点「保存片段」</div>';
+    return;
+  }
+  state.snippets.forEach((s) => {
+    const row = document.createElement("div");
+    row.className = "snip";
+    row.innerHTML = '<span class="name"></span><span class="x">✕</span>';
+    row.querySelector(".name").textContent = s.name;
+    row.querySelector(".name").onclick = () => {
+      ed2.set(s.code);
+      saveFree();
+      toast("已载入片段：" + s.name);
+    };
+    row.querySelector(".x").onclick = async () => {
+      if (!confirm("删除片段「" + s.name + "」？")) return;
+      const data = await api("/api/snippet", { name: s.name, delete: true });
+      state.snippets = data.snippets || [];
+      renderSnips();
+      toast("已删除");
+    };
+    box.appendChild(row);
+  });
+}
+
+async function loadFree() {
+  const data = await api("/api/free");
+  ed2.set(data.code || "# 自由编程：想写什么就写什么，Ctrl+Enter 运行\n\n");
+  $("stdin2").value = data.stdin || "";
+  const sn = await api("/api/snippets");
+  state.snippets = sn.snippets || [];
+  renderSnips();
+}
+
+let freeTimer = null;
+function saveFree() {
+  clearTimeout(freeTimer);
+  freeTimer = setTimeout(async () => {
+    try {
+      await api("/api/free", { code: ed2.get(), stdin: $("stdin2").value });
+      $("status2").textContent = "草稿已保存";
+      $("status2").style.color = "var(--green)";
+    } catch (err) { /* 静默：草稿保存失败不打断编码 */ }
+  }, 800);
+}
+
+async function runFree() {
+  const btn = $("runBtn2");
+  btn.disabled = true;
+  $("status2").textContent = "正在运行…";
+  const started = performance.now();
+  try {
+    const data = await api("/api/run", { code: ed2.get(), stdin: $("stdin2").value });
+    const run = data.run;
+    const cost = ((performance.now() - started) / 1000).toFixed(2);
+    const box = $("freeOut");
+    if (run.timeout) {
+      box.textContent = "运行超时（6 秒上限）。\n很可能写了死循环，或者 input() 一直在等数据。\n可以点「单步执行」看它卡在哪一步。";
+      box.style.color = "var(--red)";
+    } else if (run.error) {
+      box.textContent = "运行出错：\n" + run.error;
+      box.style.color = "var(--red)";
+    } else {
+      box.textContent = run.output || "（没有任何输出）";
+      box.style.color = "var(--dim)";
+    }
+    $("status2").textContent = "用时 " + cost + " 秒";
+    $("status2").style.color = "var(--muted)";
+    saveFree();
+  } catch (err) {
+    $("status2").textContent = "出错：" + err.message;
+    $("status2").style.color = "var(--red)";
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+async function saveSnippet() {
+  const name = prompt("给这段代码起个名字：", "片段 " + new Date().toLocaleString("zh-CN", { hour12: false }).slice(5, 16));
+  if (!name) return;
+  try {
+    const data = await api("/api/snippet", { name: name, code: ed2.get() });
+    state.snippets = data.snippets || [];
+    renderSnips();
+    toast(data.created ? "已保存片段" : "已更新片段");
+  } catch (err) { toast("保存失败：" + err.message); }
+}
+
+/* ------------------------------------------------ 事件绑定 */
+$("runBtn").onclick = runJudge;
+$("traceBtn").onclick = () => {
+  if (!state.qid) return;
+  runTrace("", ed.get(), $("stdin").value || (state.bank.questions.find((q) => q.id === state.qid).cases[0] || {}).stdin);
+};
+$("answerBtn").onclick = () => {
+  const box = $("answerBox");
+  box.style.display = box.style.display === "none" ? "block" : "none";
+};
+$("loadRef").onclick = () => {
+  const q = state.bank.questions.find((x) => x.id === state.qid);
+  if (q) { ed.set(q.ref || ""); toast("已载入参考答案"); }
+};
+$("hintBtn").onclick = () => {
+  const hint = $("qhint");
+  const on = hint.classList.toggle("show");
+  $("hintBtn").textContent = on ? "收起提示" : "显示提示";
+};
+$("reload").onclick = () => loadBank().then(() => toast("题库已刷新"));
+
+$("tPrev").onclick = () => traceStep(-1, "");
+$("tNext").onclick = () => traceStep(1, "");
+$("tPlay").onclick = () => togglePlay("");
+$("tRange").oninput = (e) => { stopPlay(); state.traceIndex = +e.target.value; renderStep(""); };
+$("t2Prev").onclick = () => traceStep(-1, "2");
+$("t2Next").onclick = () => traceStep(1, "2");
+$("t2Play").onclick = () => togglePlay("2");
+$("t2Range").oninput = (e) => { stopPlay(); state.traceIndex = +e.target.value; renderStep("2"); };
+
+$("runBtn2").onclick = runFree;
+$("traceBtn2").onclick = () => runTrace("2", ed2.get(), $("stdin2").value);
+$("saveSnip").onclick = saveSnippet;
+$("freeClear").onclick = () => {
+  if (!confirm("清空自由编程的代码？")) return;
+  ed2.set("");
+  saveFree();
+};
+$("freeExport").onclick = () => {
+  const blob = new Blob([ed2.get()], { type: "text/x-python;charset=utf-8" });
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = "my_code.py";
+  a.click();
+  URL.revokeObjectURL(a.href);
+};
+
+$("code2").addEventListener("input", saveFree);
+$("stdin2").addEventListener("input", saveFree);
+document.addEventListener("keydown", (e) => {
+  if ((e.ctrlKey || e.metaKey) && e.key === "Enter") {
+    e.preventDefault();
+    if (state.mode === "free") runFree(); else runJudge();
+  }
+  if (e.key === "F6") {
+    e.preventDefault();
+    if (state.mode === "free") runTrace("2", ed2.get(), $("stdin2").value);
+    else {
+      const q = state.bank && state.qid && state.bank.questions.find((x) => x.id === state.qid);
+      if (q) runTrace("", ed.get(), $("stdin").value || (q.cases[0] || {}).stdin);
+    }
+  }
+});
+
+$("modeBank").onclick = () => switchMode("bank");
+$("modeFree").onclick = () => switchMode("free");
+
+function switchMode(mode) {
+  state.mode = mode;
+  $("modeBank").classList.toggle("on", mode === "bank");
+  $("modeFree").classList.toggle("on", mode === "free");
+  $("bankMain").style.display = mode === "bank" ? "grid" : "none";
+  $("freeMain").style.display = mode === "free" ? "grid" : "none";
+  if (mode === "free") loadFree().catch((err) => toast("载入失败：" + err.message));
+}
+
+/* ------------------------------------------------ 启动 */
+async function loadBank() {
+  const data = await api("/api/bank");
+  state.bank = data;
+  updateStat(data.stats);
+  renderChapters();
+  const saved = localStorage.getItem("pyquiz.qid");
+  const first = data.questions.find((q) => q.last !== "pass") || data.questions[0];
+  const pick = (saved && data.questions.find((q) => q.id === saved)) || first;
+  renderList();
+  if (pick) selectQuestion(pick.id);
+}
+
+loadBank().catch((err) => {
+  $("qtitle").textContent = "载入失败";
+  $("qdesc").textContent = String(err.message || err) + "\n（请确认桌面端或 webserver.py 仍在运行）";
+});
+</script>
+</body>
+</html>

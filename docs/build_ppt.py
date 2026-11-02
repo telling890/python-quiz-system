@@ -322,6 +322,34 @@ def build():
     note(s, 9.1, 4.78, 3.7, "实现", "sys.settrace 抓 call/line/return，逐步留快照", PURPLE, size=11)
     note(s, 9.1, 5.82, 3.7, "自动兜底", "最多记 800 步，超限给明确提示", RED, size=11)
 
+    # 10 自由编程
+    s = new_slide(prs)
+    slide_title(s, "自由编程：练手的地方，不只有题库", "刷完题想写点自己的东西，也有地方写")
+    picture(s, "16_free.png", 0.62, 1.5, 8.4, 5.35)
+    free_notes = [
+        ("没有题目，直接跑", "F5 运行草稿，输出自己看", ACCENT),
+        ("草稿不丢", "改完自动落盘，可导出 .py 带走", GREEN),
+        ("我的片段", "最多 60 个，点名字载回编辑器", YELLOW),
+        ("也能单步执行", "复用执行过程面板，变量一步步看", PURPLE),
+        ("一个键两种用法", "刷题页 F5 判题，这一页 F5 运行", RED),
+    ]
+    for i, (head, body, color) in enumerate(free_notes):
+        note(s, 9.5, 1.6 + i * 1.05, 3.4, head, body, color, size=11)
+
+    # 11 网页版
+    s = new_slide(prs)
+    slide_title(s, "网页版：浏览器和手机刷同一份题库", "桌面端一键起服务，进度共用一份，手机也能练")
+    picture(s, "18_web_running.png", 0.62, 1.5, 8.4, 5.35)
+    web_notes = [
+        ("零依赖", "标准库 http.server，不装 Flask", ACCENT),
+        ("默认最安全", "只监听 127.0.0.1，本机才连得上", GREEN),
+        ("局域网", "地址带 8 位随机口令，没口令一律 403", YELLOW),
+        ("同一份数据", "一个 Store，两个界面共享进度", PURPLE),
+        ("网页里也能单步", "判题反馈与执行过程都在浏览器里", RED),
+    ]
+    for i, (head, body, color) in enumerate(web_notes):
+        note(s, 9.5, 1.6 + i * 1.05, 3.4, head, body, color, size=11)
+
     # 9 答案与解析
     s = new_slide(prs)
     slide_title(s, "参考答案与解析：学会，而不只是做对", "教材示范代码的问题也逐条指出")
@@ -407,10 +435,10 @@ def build():
     s = new_slide(prs)
     slide_title(s, "技术架构：分层解耦，数据驱动", "Python 3.8 + Tkinter + PyInstaller 5.13.2")
     layers = [
-        ("表现层", "ui.py · widgets.py · theme.py · ui_exam.py", "5 个页面 + 自绘控件 + DPI 缩放", ACCENT),
-        ("业务层", "judge.py · tracer.py · exam.py", "判题执行与比对 · 执行过程追踪 · 组卷/限时/评分", GREEN),
+        ("表现层", "ui.py · ui_free.py · ui_trace.py · ui_web.py · widgets.py", "7 个页面 + 自绘控件 + DPI 缩放", ACCENT),
+        ("业务层", "judge.py · tracer.py · exam.py · webserver.py", "判题执行 · 执行过程追踪 · 组卷评分 · 网页接口", GREEN),
         ("数据层", "qbank.py · bank_ch3/4/5 · bank_extra · bank_algo", "{} 道题的题干、答案、用例、解析".format(TOTAL_Q), YELLOW),
-        ("存储层", "store.py", "进度 / 错题 / 收藏 / 考试历史（原子写入）", PURPLE),
+        ("存储层", "store.py", "进度 / 错题 / 收藏 / 草稿 / 片段（原子写入）", PURPLE),
     ]
     for i, (name, mods, desc, color) in enumerate(layers):
         y = 1.6 + i * 1.15
@@ -519,6 +547,7 @@ def build():
             "· {} 题四类题库，{} 个用例全部自检通过\n\n"
             "· 判题引擎：沙箱执行 + 超时保护 + 归一化比对\n\n"
             "· 执行过程可视化：逐行走一遍，看变量怎么变\n\n"
+            "· 自由编程 + 网页版：手机也能刷，进度共用一份\n\n"
             "· 学习闭环：错题本 / 收藏 / 统计 / 进度保存\n\n"
             "· 模拟组卷：随机出卷 + 限时 + 交卷报告\n\n"
             "· 免安装目录版 + 5 份项目文档".format(TOTAL_Q, TOTAL_CASES),
@@ -527,9 +556,9 @@ def build():
     textbox(s, 7.0, 1.6, 5.4, 0.36, "还能怎么走", 15, True, YELLOW)
     textbox(s, 7.0, 2.0, 5.4, 2.9,
             "· 函数题 / 文件题（判题需要新的执行约定）\n\n"
-            "· 按错题加权的智能组卷\n\n"
-            "· 成绩趋势与章节正确率曲线\n\n"
-            "· 机房多人使用：导出成绩 / Web 版",
+            "· 代码纠错题 / 挖空题（用现有参考答案自动生成）\n\n"
+            "· 班级多用户档案：一份程序带一个班\n\n"
+            "· 题库热更新与云端同步",
             11.5, False, TEXT, line_spacing=1.35)
 
     card(s, 0.9, 5.75, 11.5, 0.8, fill=CARD_HI, line=ACCENT)

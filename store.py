@@ -57,7 +57,8 @@ def describe_error(exc, path):
 class Store(object):
     def __init__(self, path=None):
         self.path = path or default_path()
-        self.data = {"version": 1, "questions": {}, "last_qid": None, "exams": []}
+        self.data = {"version": 1, "questions": {}, "last_qid": None, "exams": [],
+                     "free": {"code": "", "stdin": ""}, "snippets": []}
         self.last_error = ""
         self.fail_count = 0
         self.on_save_error = None     # 写入失败时回调（参数：错误说明）
@@ -200,5 +201,64 @@ class Store(object):
         return list(reversed(self.data.get("exams", [])))[:limit]
 
     def reset(self):
-        self.data = {"version": 1, "questions": {}, "last_qid": None, "exams": []}
+        self.data = {"version": 1, "questions": {}, "last_qid": None, "exams": [],
+                     "free": {"code": "", "stdin": ""},
+                     "snippets": self.snippets()}   # 自由编程的片段是用户的素材，保留
         self.save()
+
+    # ---------------------------------------------------------------- 自由编程
+    def free_state(self):
+        """自由编程页的草稿（代码 + 标准输入），老版本进度文件里没有就先补上。"""
+        free = self.data.get("free")
+        if not isinstance(free, dict):
+            free = {}
+        free.setdefault("code", "")
+        free.setdefault("stdin", "")
+        self.data["free"] = free
+        return free
+
+    def save_free(self, code, stdin_text=""):
+        free = self.free_state()
+        free["code"] = code
+        free["stdin"] = stdin_text
+        free["updated"] = time.strftime("%Y-%m-%d %H:%M:%S")
+        return self.save()
+
+    def snippets(self):
+        """代码片段列表，按最近修改排在前面。"""
+        items = self.data.get("snippets")
+        if not isinstance(items, list):
+            items = []
+        items = [it for it in items if isinstance(it, dict) and it.get("name")]
+        self.data["snippets"] = items
+        return sorted(items, key=lambda it: it.get("updated", ""), reverse=True)
+
+    def save_snippet(self, name, code, limit=60):
+        """保存/覆盖一个片段，返回 True 表示新增、False 表示覆盖。"""
+        name = (name or "").strip()
+        if not name:
+            return None
+        now = time.strftime("%Y-%m-%d %H:%M:%S")
+        items = self.snippets()
+        created = True
+        for it in items:
+            if it.get("name") == name:
+                it["code"] = code
+                it["updated"] = now
+                created = False
+                break
+        if created:
+            items.append({"name": name, "code": code, "updated": now})
+            items = items[-limit:]
+        self.data["snippets"] = items
+        self.save()
+        return created
+
+    def delete_snippet(self, name):
+        before = self.snippets()
+        items = [it for it in before if it.get("name") != name]
+        if len(items) == len(before):
+            return False
+        self.data["snippets"] = items
+        self.save()
+        return True

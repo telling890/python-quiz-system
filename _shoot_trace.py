@@ -83,31 +83,32 @@ def main():
 
     app.practice.trace_current()
     wait_trace(app)
-    steps = app.practice._trace["result"]["steps"]
+    pane = app.practice.trace_pane
+    steps = pane.steps
     assert steps, "没有记录到执行过程"
-    app.practice._trace_index = len(steps) // 2
-    app.practice._render_trace_step()
+    pane._trace_index = len(steps) // 2
+    pane.render_step()
     app.update()
     print("demo question:", q["id"], q["title"], "steps:", len(steps))
     shot(app, "13_trace.png")
 
     # 冒烟：上一步 / 下一步 / 自动播放开关 / 拖时间轴
-    app.practice.trace_step(-1)
-    app.practice.trace_step(1)
-    app.practice.toggle_trace_play()
-    assert app.practice._play_job is not None, "自动播放没有启动"
-    app.practice.toggle_trace_play()
-    assert app.practice._play_job is None, "自动播放没有停下"
-    app.practice.tr_scale.set_range(len(steps) - 1)
-    app.practice.tr_scale._on_pointer(type("E", (), {"x": 10 ** 6})())
+    pane.trace_step(-1)
+    pane.trace_step(1)
+    pane.toggle_trace_play()
+    assert pane._play_job is not None, "自动播放没有启动"
+    pane.toggle_trace_play()
+    assert pane._play_job is None, "自动播放没有停下"
+    pane.tr_scale.set_range(len(steps) - 1)
+    pane.tr_scale._on_pointer(type("E", (), {"x": 10 ** 6})())
     app.update()
-    assert app.practice._trace_index == len(steps) - 1, app.practice._trace_index
+    assert pane._trace_index == len(steps) - 1, pane._trace_index
 
     # 换题后轨迹应被清空
     app.practice.next_q()
     app.update()
-    assert app.practice._trace is None, "换题后执行过程没有清空"
-    assert app.practice.tr_src.get("1.0", "end-1c").strip() == "", "换题后代码视图没清空"
+    assert pane._trace is None, "换题后执行过程没有清空"
+    assert pane.tr_src.get("1.0", "end-1c").strip() == "", "换题后代码视图没清空"
 
     # 死循环：给出提示、不卡界面、不拖垮判题
     app.practice.editor.set_code("while True:\n    pass\n")
