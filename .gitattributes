@@ -18,3 +18,8 @@ dist/** binary
 # 源码与文档按文本处理
 *.py   text
 *.md   text
+
+# Windows 脚本必须是 CRLF：cmd.exe 解析 if/for 块时遇到纯 LF 会乱套
+*.bat  text eol=crlf
+*.ps1  text eol=crlf
+*.cmd  text eol=crlf

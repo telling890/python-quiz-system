@@ -120,7 +120,7 @@
 
 - 账号注册 / 登录（PBKDF2 + JWT），每人独立的进度、收藏与代码片段
 - 判题在**独立子进程**里跑（超时 kill、输出截断、Linux 下还有内存上限），学生代码偷不到题库
-- **同一套网页版页面**：服务端在 `/` 返回 `web/index.html` 并注入登录层；另有 React 新前端挂在 `/app`（见下）
+- **同一套网页版页面**：老页面挪到 `/legacy`（注入登录层），新 React 前端挂在 `/app`，打开 `/` 默认进新前端
 - 提交异步化：`POST /submissions` 拿 id，轮询结果；题库启动时自动灌入这 139 道题
 - 自带 `/docs` 交互文档、`/healthz` 健康检查、限流，`docker compose up` 一条命令部署
 - 与桌面版共选题库（`backend/scripts/export_bank.py` 从 `qbank.py` 导出）；
@@ -135,10 +135,16 @@ py -3.10 -m pytest -q                                  # 67 个测试
 细节（接口表、配置项、沙箱原理、部署与扩容）见 [backend/README.md](backend/README.md)；
 上线步骤（选机器、域名/HTTPS、备份、排查）见 [backend/DEPLOY.md](backend/DEPLOY.md)。
 
-### 新前端（React + TypeScript，`/app`）
+### 网页版（React + TypeScript，打开地址就能用）
 
-`frontend/` 是用 **React 18 + Vite + TypeScript + Tailwind CSS 4** 重写的网页前端，
-接的是带版本号的 `/api/v1`，不再是给老页面用的兼容层。老页面继续留在 `/`，两边共用同一份题库和进度。
+`frontend/` 是用 **React 18 + Vite + TypeScript + Tailwind CSS 4** 写的网页前端，
+接的是带版本号的 `/api/v1`，不再是给老页面用的兼容层。
+
+**打开服务器地址（`http://127.0.0.1:8000/`）默认就是新前端**——构建过前端时根路径 307 跳到 `/app/`，
+没构建过的机器自动退回旧页面。旧的单文件页面留在 `/legacy`，两边共用同一份题库和进度。
+
+最省事的打开方式：双击仓库根目录的 **`启动网页版.bat`** ——
+没构建就先构建、后端没起来就新开窗口起服务，等服务就绪后自动用浏览器打开首页。
 
 ![新前端 · 概览](shots/frontend/02-dashboard.png)
 
@@ -162,6 +168,17 @@ py -3.10 -m pytest -q                                  # 67 个测试
 ![新前端 · 单步追踪](shots/frontend/11-trace.png)
 
 ```powershell
+# 方式一：一键（Windows，双击也行）
+.\启动网页版.bat
+
+# 方式二：手动
+cd quiz_app\backend
+py -3.10 -m uvicorn app.main:app --port 8000    # 打开 http://127.0.0.1:8000/ 就是网页版
+```
+
+前后端分开跑（改前端时用）：
+
+```powershell
 cd quiz_app\frontend
 npm install
 npm run dev      # http://localhost:5173/app/（接口自动代理到 127.0.0.1:8000）
@@ -171,7 +188,7 @@ npm run build    # 产物 frontend/dist，后端启动时自动挂到 /app
 Docker 镜像里已经内置 node 构建阶段（多阶段构建），服务器上不需要装 Node：
 
 ```bash
-cd backend && docker compose build && docker compose up -d   # 新前端: https://你的域名/app
+cd backend && docker compose build && docker compose up -d   # 打开 https://你的域名/ 就是网页版
 ```
 
 前端自己的说明（目录结构、为什么组卷/错题本/统计都在前端算、接口契约）见

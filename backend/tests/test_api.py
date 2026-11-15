@@ -23,13 +23,12 @@ def test_health(client):
     assert body["data"]["status"] == "ok"
 
 
-def test_root_serves_web_ui(client):
-    """根路径现在是网页版页面（服务端会注入登录脚本），API 元信息看 /docs。"""
+def test_root_opens_a_usable_ui(client):
+    """`/` 优先给新前端：构建过就 307 到 /app/（urllib 会自动跟过去），没构建就退回老网页版。"""
     status, body = client("GET", "/")
     assert status == 200
     html = body.get("raw", "")
-    assert "auth.js" in html
-    assert "/api/bank" in html
+    assert ("auth.js" in html) or ("/app/assets/" in html) or ('id="root"' in html)
 
 
 # ---------------------------------------------------------------- 认证

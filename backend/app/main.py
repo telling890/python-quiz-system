@@ -19,7 +19,7 @@ import uvicorn
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse, HTMLResponse, JSONResponse
+from fastapi.responses import FileResponse, HTMLResponse, JSONResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
@@ -51,17 +51,29 @@ async def lifespan(app: FastAPI):
         logger.info("判题 worker 已停止")
 
 
-def render_index(source, beian=""):
-    """把登录脚本（以及可选的 ICP 备案号）注入 index.html。
+def render_index(source, beian="", frontend_url=""):
+    """把登录脚本（以及可选的 ICP 备案号 / 新版入口）注入 index.html。
 
     抽成独立函数只为了能单测：注入一旦坏了，站点会「能打开但登录不了」，
-    比直接 500 难查得多。两个注入都是幂等的，重复调用不会注入两次。
+    比直接 500 难查得多。三个注入都是幂等的，重复调用不会注入两次。
     """
     text = source
     if "/auth.js" not in text:
         tag = '<script src="/auth.js"></script>'
         text = (text.replace("</head>", tag + "</head>", 1)
                 if "</head>" in text else tag + text)
+
+    frontend_url = (frontend_url or "").strip()
+    if frontend_url and 'id="pyquiz-frontend-link"' not in text:
+        pill = (
+            '<a id="pyquiz-frontend-link" href="' + escape(frontend_url) + '"'
+            ' style="position:fixed;right:10px;top:10px;z-index:9000;'
+            "font:12px/1.4 -apple-system,'Segoe UI','Microsoft YaHei',sans-serif;"
+            "color:#c7d2fe;text-decoration:none;background:rgba(79,70,229,.9);"
+            'padding:5px 10px;border-radius:8px;border:1px solid #6366f1">试试新版界面 →</a>'
+        )
+        text = (text.replace("</body>", pill + "</body>", 1)
+                if "</body>" in text else text + pill)
 
     beian = (beian or "").strip()
     if beian and 'id="pyquiz-beian"' not in text:
@@ -79,10 +91,13 @@ def render_index(source, beian=""):
 
 
 def _mount_web(app, settings):
-    """把仓库根的 web/ 挂到根路径：/ 返回注入了登录脚本的 index.html，/auth.js 返回脚本。
+    """把仓库根的老网页版（web/）挂到 /legacy，/auth.js 仍留在根上。
 
     为什么要注入而不是改 index.html：同一个文件桌面版（webserver.py）也在用，
     桌面版是单人本机、没有账号体系，不能背上来一个登录浮层。
+
+    为什么不再占用 `/`：`/` 现在让给新前端（构建过就跳 /app/，没构建就退回这里），
+    这样「打开服务器地址」永远看到的是能用的界面，而不是一份 797 行的旧页面。
 
     返回 True 表示挂上了；没有静态目录时返回 False，调用方退回 JSON 首页。
     """
@@ -92,11 +107,17 @@ def _mount_web(app, settings):
         logger.warning("没有找到网页版目录（%s），只提供 API", web_dir)
         return False
 
-    @app.get("/", include_in_schema=False, response_class=HTMLResponse)
-    def web_index():
+    def render_legacy():
+        # 构建过新前端就在旧页面右上角挂一个入口；没构建就不显示，免得点进 404
+        frontend_url = "/app/" if app.state.frontend_ready else ""
         html = index.read_text(encoding="utf-8")
-        return HTMLResponse(render_index(html, settings.beian),
+        return HTMLResponse(render_index(html, settings.beian, frontend_url),
                             headers={"Cache-Control": "no-store"})
+
+    @app.get("/legacy", include_in_schema=False, response_class=HTMLResponse)
+    @app.get("/legacy/", include_in_schema=False, response_class=HTMLResponse)
+    def web_index():
+        return render_legacy()
 
     @app.get("/auth.js", include_in_schema=False)
     def web_auth_js():
@@ -106,6 +127,7 @@ def _mount_web(app, settings):
         return FileResponse(str(path), media_type="application/javascript",
                             headers={"Cache-Control": "no-store"})
 
+    app.state.render_legacy = render_legacy
     return True
 
 
@@ -213,9 +235,28 @@ def create_app():
     app.include_router(legacy.router)
 
     # ------------------------------------------------------------ 网页版
-    has_web = _mount_web(app, settings)
-    # 新前端（React SPA）：/app，与老网页版并存
+    # 先挂新前端，老页面才知道要不要往右上角放「试试新版」入口
+    app.state.frontend_ready = False
     has_frontend = _mount_frontend(app, settings)
+    app.state.frontend_ready = has_frontend
+    has_web = _mount_web(app, settings)
+
+    # ------------------------------------------------------------ 首页
+    @app.get("/", include_in_schema=False)
+    def root():
+        """打开服务器地址时给一份能用的界面。
+
+        - 构建过新前端 → 307 跳到 /app/（首页就是 React 版）
+        - 没构建（比如只跑了后端）→ 退回老网页版 /legacy 的内容
+        - 两个都没有 → 返回一份 JSON 元信息，至少不是 404
+        """
+        if has_frontend:
+            return RedirectResponse("/app/", status_code=307)
+        if has_web:
+            return app.state.render_legacy()
+        return {"ok": True,
+                "data": {"name": settings.app_name, "version": __version__,
+                         "docs": "/docs", "health": "/healthz"}}
 
     # ------------------------------------------------------------ 运维
     @app.get("/healthz", tags=["ops"], summary="健康检查")
@@ -233,15 +274,8 @@ def create_app():
                                                    "message": str(exc)}})
         return {"ok": True,
                 "data": {"status": "ok", "version": __version__,
-                         "judge_workers": get_service().workers}}
-
-    if not has_web:
-        @app.get("/", include_in_schema=False)
-        def index():
-            return {"ok": True,
-                    "data": {"name": settings.app_name, "version": __version__,
-                             "docs": "/docs", "health": "/healthz",
-                             "web": "/app" if has_frontend else None}}
+                         "judge_workers": get_service().workers,
+                         "frontend": has_frontend, "legacy": has_web}}
 
     return app
 

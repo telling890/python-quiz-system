@@ -49,8 +49,8 @@ def test_requires_login(client):
     assert body["ok"] is False
 
 
-def test_root_serves_web_ui(client):
-    status, body = client("GET", "/")
+def test_legacy_page_served(client):
+    status, body = client("GET", "/legacy")
     assert status == 200
     html = body.get("raw", "")
     assert "auth.js" in html          # 登录脚本被注入

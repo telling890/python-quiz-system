@@ -71,3 +71,25 @@ def test_mount_frontend_absent_is_harmless(tmp_path):
         assert "/app/{path:path}" not in paths
     finally:
         settings.frontend_dir = original
+
+
+def test_root_redirects_to_spa_when_built(tmp_path):
+    """构建过前端时，打开服务器地址（/）应该直接进新界面，而不是旧页面。"""
+    dist = _make_dist(tmp_path)
+    settings = get_settings()
+    original = settings.frontend_dir
+    settings.frontend_dir = str(dist)
+    try:
+        from app.main import create_app
+
+        app = create_app()
+        routes = {getattr(route, "path", ""): route for route in app.routes}
+        response = routes["/"].endpoint()
+        assert response.status_code == 307
+        assert response.headers["location"] == "/app/"
+        # 旧页面挪到 /legacy，还能打开（auth.js 仍在根上）
+        legacy_routes = {getattr(route, "path", "") for route in app.routes}
+        assert "/legacy" in legacy_routes
+        assert "/auth.js" in legacy_routes
+    finally:
+        settings.frontend_dir = original

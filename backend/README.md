@@ -221,7 +221,7 @@ cp .env.example .env                          # 改 QUIZ_JWT_SECRET / QUIZ_ENV /
 docker compose up -d --build api caddy       # 2G 机器；4G 以上再加 worker
 ```
 
-- `api`：正式进程，同时也是网页版的宿主（`/` 返回 `web/index.html`）；非 root、只读根文件系统、`cap_drop: ALL`、`pids_limit`、`mem_limit`；
+- `api`：正式进程，同时也是网页版的宿主（`/` 跳新前端 `/app`，旧页面在 `/legacy`）；非 root、只读根文件系统、`cap_drop: ALL`、`pids_limit`、`mem_limit`；
 - `worker`：独立判题容器（`python -m app.judge.worker_entry`），和 API 共用数据库。**2G 机器别开**（两个 1g 容器会打架）；
 - `caddy`：反代 `/`、`/auth.js` 和 `/api/*`，**自动申请并续期 HTTPS 证书**（域名写在 `Caddyfile`，当前是 `pyquit.fun`）。
   想用 nginx 的 `limit_req` 按 IP 限流，就把 compose 里的 `caddy` 换成注释中的 `nginx`，按 `DEPLOY.md` 6.5 补证书。
@@ -255,7 +255,7 @@ docker compose up -d --build api caddy       # 2G 机器；4G 以上再加 worke
   收藏取并集，片段同名的保留 `updated` 更新的，草稿只在服务端为空时填入；
   `exams`（组卷历史）没有对应表，跳过并报告条数。
 - 旧网页版 `web/index.html` 调的是 `/api/*` 且不带 token，本来和新接口不兼容。
-  现在由 `routers/legacy.py` 原样兼容，服务端在 `/` 返回页面时额外注入 `web/auth.js`
+  现在由 `routers/legacy.py` 原样兼容，服务端在 `/legacy` 返回页面时额外注入 `web/auth.js`
   （登录浮层 + 自动带 `Authorization`），**页面本身一行没改**；桌面版 `webserver.py`
   不加载 `auth.js`，所以单人本机的体验完全不受影响。
 
