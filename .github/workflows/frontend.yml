@@ -1,0 +1,50 @@
+name: 前端构建检查
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "frontend/**"
+      - ".github/workflows/frontend.yml"
+  pull_request:
+    paths:
+      - "frontend/**"
+      - ".github/workflows/frontend.yml"
+  workflow_dispatch:
+
+jobs:
+  build:
+    name: 类型检查 + 构建（Node ${{ matrix.node-version }}）
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        node-version: ["20", "22"]
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v4
+
+      - name: 安装 Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: 安装依赖
+        run: npm ci --no-audit --no-fund
+
+      - name: TypeScript 类型检查
+        run: npm run typecheck
+
+      - name: 生产构建
+        run: npx vite build
+
+      - name: 检查产物（index.html + assets 都在）
+        run: |
+          test -f dist/index.html
+          test -d dist/assets
+          ls -lh dist/assets | head -5

@@ -1,0 +1,354 @@
+@import "tailwindcss";
+
+/* ------------------------------------------------------------------
+   设计令牌：暗色「编码工具」基调
+   - 背景近乎黑蓝，面板比背景亮半档，1px 描边分隔
+   - 主色 indigo（操作/选中），辅助青（数据），绿/黄/红（判题语义）
+   ------------------------------------------------------------------ */
+@theme {
+  --color-ink-950: #05080f;
+  --color-ink-900: #080d18;
+  --color-ink-850: #0b1120;
+  --color-ink-800: #0f1729;
+  --color-ink-750: #131d33;
+  --color-ink-700: #18243d;
+  --color-ink-600: #22304d;
+
+  --color-line: #1d2a44;
+  --color-line-soft: #162037;
+
+  --color-fg: #e8eefc;
+  --color-fg-muted: #9aa8c7;
+  --color-fg-dim: #6b7a9c;
+
+  --color-brand-300: #a5b4fc;
+  --color-brand-400: #818cf8;
+  --color-brand-500: #6366f1;
+  --color-brand-600: #4f46e5;
+
+  --color-aqua-400: #22d3ee;
+  --color-ok-400: #34d399;
+  --color-ok-500: #10b981;
+  --color-warn-400: #fbbf24;
+  --color-bad-400: #f87171;
+  --color-bad-500: #ef4444;
+
+  --radius-xl: 0.9rem;
+  --radius-2xl: 1.15rem;
+
+  --font-mono: "JetBrains Mono", "Cascadia Code", "SFMono-Regular", Consolas,
+    "Liberation Mono", Menlo, monospace;
+}
+
+@layer base {
+  * {
+    border-color: var(--color-line-soft);
+  }
+
+  html {
+    color-scheme: dark;
+  }
+
+  body {
+    margin: 0;
+    background-color: var(--color-ink-950);
+    color: var(--color-fg);
+    font-family: "Inter", "PingFang SC", "Microsoft YaHei", "Hiragino Sans GB",
+      system-ui, -apple-system, "Segoe UI", sans-serif;
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+
+  /* 顶部两团极淡的光晕，避免纯色背景发闷 */
+  body::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 0;
+    background:
+      radial-gradient(60rem 30rem at 12% -8%, rgba(99, 102, 241, 0.16), transparent 60%),
+      radial-gradient(45rem 25rem at 92% 0%, rgba(34, 211, 238, 0.1), transparent 65%);
+  }
+
+  ::selection {
+    background: rgba(99, 102, 241, 0.35);
+    color: #fff;
+  }
+
+  /* 滚动条 */
+  ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: #22304d;
+    border-radius: 999px;
+    border: 2px solid transparent;
+    background-clip: content-box;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: #33456b;
+    background-clip: content-box;
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--color-brand-400);
+    outline-offset: 2px;
+  }
+}
+
+@layer components {
+  .panel {
+    background-color: color-mix(in oklab, var(--color-ink-850) 88%, transparent);
+    border: 1px solid var(--color-line);
+    border-radius: var(--radius-2xl);
+    box-shadow: 0 1px 0 rgba(255, 255, 255, 0.03) inset,
+      0 18px 40px -28px rgba(0, 0, 0, 0.9);
+  }
+
+  .panel-flat {
+    background-color: color-mix(in oklab, var(--color-ink-800) 70%, transparent);
+    border: 1px solid var(--color-line-soft);
+    border-radius: var(--radius-xl);
+  }
+
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.45rem;
+    border-radius: 0.7rem;
+    font-size: 0.875rem;
+    font-weight: 600;
+    line-height: 1;
+    padding: 0.62rem 0.95rem;
+    border: 1px solid transparent;
+    cursor: pointer;
+    transition:
+      background-color 0.16s ease,
+      border-color 0.16s ease,
+      color 0.16s ease,
+      transform 0.06s ease,
+      box-shadow 0.16s ease;
+    white-space: nowrap;
+    user-select: none;
+  }
+  .btn:active:not(:disabled) {
+    transform: translateY(1px);
+  }
+  .btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+
+  .btn-primary {
+    background: linear-gradient(180deg, var(--color-brand-500), var(--color-brand-600));
+    color: #fff;
+    box-shadow: 0 10px 24px -14px rgba(99, 102, 241, 0.9);
+  }
+  .btn-primary:hover:not(:disabled) {
+    background: linear-gradient(180deg, #7376f5, var(--color-brand-500));
+  }
+
+  .btn-ghost {
+    background: transparent;
+    border-color: var(--color-line);
+    color: var(--color-fg-muted);
+  }
+  .btn-ghost:hover:not(:disabled) {
+    background: var(--color-ink-750);
+    color: var(--color-fg);
+    border-color: #2a3b5e;
+  }
+
+  .btn-soft {
+    background: var(--color-ink-750);
+    color: var(--color-fg);
+    border-color: var(--color-line);
+  }
+  .btn-soft:hover:not(:disabled) {
+    background: var(--color-ink-700);
+    border-color: #2a3b5e;
+  }
+
+  .btn-danger {
+    background: rgba(239, 68, 68, 0.14);
+    color: #fca5a5;
+    border-color: rgba(239, 68, 68, 0.4);
+  }
+  .btn-danger:hover:not(:disabled) {
+    background: rgba(239, 68, 68, 0.22);
+  }
+
+  .input {
+    width: 100%;
+    background: var(--color-ink-900);
+    border: 1px solid var(--color-line);
+    border-radius: 0.7rem;
+    padding: 0.6rem 0.8rem;
+    font-size: 0.875rem;
+    color: var(--color-fg);
+    transition: border-color 0.15s ease, box-shadow 0.15s ease;
+  }
+  .input::placeholder {
+    color: var(--color-fg-dim);
+  }
+  .input:focus {
+    outline: none;
+    border-color: var(--color-brand-500);
+    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.18);
+  }
+
+  .chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    padding: 0.2rem 0.55rem;
+    border-radius: 999px;
+    font-size: 0.72rem;
+    font-weight: 600;
+    letter-spacing: 0.01em;
+    border: 1px solid var(--color-line);
+    background: var(--color-ink-800);
+    color: var(--color-fg-muted);
+    white-space: nowrap;
+  }
+
+  .nav-item {
+    display: flex;
+    align-items: center;
+    gap: 0.65rem;
+    padding: 0.55rem 0.7rem;
+    border-radius: 0.7rem;
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: var(--color-fg-muted);
+    transition: background-color 0.14s ease, color 0.14s ease;
+  }
+  .nav-item:hover {
+    background: var(--color-ink-800);
+    color: var(--color-fg);
+  }
+  .nav-item-active {
+    background: color-mix(in oklab, var(--color-brand-500) 18%, transparent);
+    color: #c7d2fe;
+    box-shadow: inset 0 0 0 1px rgba(99, 102, 241, 0.35);
+  }
+  .nav-item-active:hover {
+    background: color-mix(in oklab, var(--color-brand-500) 24%, transparent);
+    color: #e0e7ff;
+  }
+
+  .code-surface {
+    font-family: var(--font-mono);
+    font-size: 0.8125rem;
+    line-height: 1.65;
+    tab-size: 4;
+  }
+}
+
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
+  }
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+  .no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+
+  .animate-fade-in {
+    animation: fade-in 0.28s ease both;
+  }
+  .animate-rise {
+    animation: rise 0.34s cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+  .animate-pop {
+    animation: pop 0.24s cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+  .animate-shimmer {
+    background: linear-gradient(
+      90deg,
+      rgba(255, 255, 255, 0.02) 0%,
+      rgba(255, 255, 255, 0.07) 50%,
+      rgba(255, 255, 255, 0.02) 100%
+    );
+    background-size: 200% 100%;
+    animation: shimmer 1.4s linear infinite;
+  }
+  .animate-pulse-ring {
+    animation: pulse-ring 1.6s ease-out infinite;
+  }
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes pop {
+  from {
+    opacity: 0;
+    transform: scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes shimmer {
+  from {
+    background-position: 200% 0;
+  }
+  to {
+    background-position: -200% 0;
+  }
+}
+
+@keyframes pulse-ring {
+  0% {
+    box-shadow: 0 0 0 0 rgba(99, 102, 241, 0.45);
+  }
+  70% {
+    box-shadow: 0 0 0 12px rgba(99, 102, 241, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(99, 102, 241, 0);
+  }
+}
+
+/* CodeMirror 融进面板 */
+.cm-editor {
+  background: transparent !important;
+  height: 100%;
+}
+.cm-editor .cm-scroller {
+  font-family: var(--font-mono) !important;
+  font-size: 0.8125rem;
+  line-height: 1.7;
+}
+.cm-editor.cm-focused {
+  outline: none !important;
+}

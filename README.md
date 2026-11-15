@@ -20,7 +20,7 @@
 > **在线看文档**：[项目汇报](docs/pdf/5-项目汇报.pdf) · [答辩 PPT](docs/pdf/4-答辩演示.pdf) · [需求](docs/pdf/1-需求说明书.pdf) · [设计](docs/pdf/2-设计文档.pdf) · [测试](docs/pdf/3-测试报告.pdf)
 
 - 可执行文件：`dist/Python刷题系统/Python刷题系统.exe`（免安装目录版，双击运行，约 21 MB）
-- 功能：顺序/随机刷题、判题、**执行过程单步追踪**、**自由编程**、错题本、收藏、统计（饼图 + 得分趋势）、模拟组卷（可按错题加权）、题目搜索、导出 CSV、导入自定义题库、**网页版（浏览器/手机共用同一份进度）**
+- 功能：顺序/随机刷题、判题、**执行过程单步追踪**、**自由编程**、错题本、收藏、统计（饼图 + 得分趋势）、模拟组卷（可按错题加权）、题目搜索、导出 CSV、导入自定义题库、**网页版（浏览器/手机共用同一份进度）**、**React 新前端（`/app`，接 `/api/v1`）**
 - 便携压缩包：`downloads/Python-quiz-system-portable.zip`（8.9 MB，拷贝/分发用这个）
 - 源码运行：`python main.py`；重新打包：`python build.py`
 - 题库：**139 道**（教材第3章 35 + 第4章 17 + 第5章 17，拓展练习 40，进阶算法 30），**338 个测试用例**
@@ -112,6 +112,70 @@
 
 > 网页版会执行你写的代码，所以默认只监听 `127.0.0.1`；开放局域网后会启用随机口令，
 > 且只接受同源 + `application/json` 的请求，防止别的网页偷偷调你的本机服务。
+
+### 后端服务（多用户版，可选）
+
+上面的网页版是「本机一个人的服务」。如果要做成**多人共用、有账号、能部署到服务器**的后端，
+仓库里另有一份独立的 FastAPI 服务：[`backend/`](backend/README.md)。
+
+- 账号注册 / 登录（PBKDF2 + JWT），每人独立的进度、收藏与代码片段
+- 判题在**独立子进程**里跑（超时 kill、输出截断、Linux 下还有内存上限），学生代码偷不到题库
+- **同一套网页版页面**：服务端在 `/` 返回 `web/index.html` 并注入登录层；另有 React 新前端挂在 `/app`（见下）
+- 提交异步化：`POST /submissions` 拿 id，轮询结果；题库启动时自动灌入这 139 道题
+- 自带 `/docs` 交互文档、`/healthz` 健康检查、限流，`docker compose up` 一条命令部署
+- 与桌面版共选题库（`backend/scripts/export_bank.py` 从 `qbank.py` 导出）；
+  老用户的 `state.json` 可以用 `backend/scripts/import_state.py` 一键导入（幂等合并，导两次也不会翻倍）
+
+```powershell
+cd quiz_app\backend
+py -3.10 -m uvicorn app.main:app --reload --port 8000   # / 是网页版，/app 是新前端
+py -3.10 -m pytest -q                                  # 67 个测试
+```
+
+细节（接口表、配置项、沙箱原理、部署与扩容）见 [backend/README.md](backend/README.md)；
+上线步骤（选机器、域名/HTTPS、备份、排查）见 [backend/DEPLOY.md](backend/DEPLOY.md)。
+
+### 新前端（React + TypeScript，`/app`）
+
+`frontend/` 是用 **React 18 + Vite + TypeScript + Tailwind CSS 4** 重写的网页前端，
+接的是带版本号的 `/api/v1`，不再是给老页面用的兼容层。老页面继续留在 `/`，两边共用同一份题库和进度。
+
+![新前端 · 概览](shots/frontend/02-dashboard.png)
+
+| 页面 | 地址 | 能看到什么 |
+|---|---|---|
+| 概览 | `/app` | 四张统计卡、接着上次继续、章节进度、最近提交 |
+| 刷题 | `/app/practice/:qid` | 题目列表 + 题面 + 代码编辑器 + 判题/运行/单步追踪 |
+| 题本 | `/app/book` | 错题本 / 收藏夹 / 没通过，导出成绩 CSV |
+| 自由编程 | `/app/free` | stdin、草稿自动保存、代码片段增删 |
+| 统计 | `/app/stats` | 覆盖率环形图、章节与难度掌握度、7 天趋势、提交结果分布 |
+| 模拟组卷 | `/app/exam` | 错题加权/随机/顺序/只考没做过，限时，逐题判分，交卷报告 |
+
+![新前端 · 刷题](shots/frontend/04-practice-judge.png)
+
+- **判题结果逐用例展开**：期望/实际并排，首个不一致的行标红，报错原文直接摊开
+- **单步追踪播放器**：源码高亮当前行，左侧变量快照 + 累计输出，`←/→` 切步、空格播放、0.5×–5× 变速
+- **异步判题**：提交后按 800ms→1.6s 退避轮询（后端限流是每进程 120 次/分钟）
+- **刷新不丢**：组卷进度存 `localStorage`，回来接着做；编辑器内容按题号保留
+- **移动端**：侧栏变抽屉 + 底部导航，手机竖屏也能刷
+
+![新前端 · 单步追踪](shots/frontend/11-trace.png)
+
+```powershell
+cd quiz_app\frontend
+npm install
+npm run dev      # http://localhost:5173/app/（接口自动代理到 127.0.0.1:8000）
+npm run build    # 产物 frontend/dist，后端启动时自动挂到 /app
+```
+
+Docker 镜像里已经内置 node 构建阶段（多阶段构建），服务器上不需要装 Node：
+
+```bash
+cd backend && docker compose build && docker compose up -d   # 新前端: https://你的域名/app
+```
+
+前端自己的说明（目录结构、为什么组卷/错题本/统计都在前端算、接口契约）见
+[`frontend/README.md`](frontend/README.md) 和 [`frontend/API-CONTRACT.md`](frontend/API-CONTRACT.md)。
 
 ### 数据存在哪（便携）
 
@@ -222,6 +286,8 @@ quiz_app/
 ├─ shots/                    界面截图（README 与 PPT 用）
 ├─ web/
 │  └─ index.html             网页版前端（单文件：题库刷题 + 自由编程 + 执行过程）
+├─ frontend/                 React 新前端（Vite + TS + Tailwind，由后端挂在 /app，见 frontend/README.md）
+├─ backend/                  多用户后端（FastAPI + SQLAlchemy，见 backend/README.md）
 ├─ main.py                   程序入口（DPI 适配、异常兜底）
 ├─ ui.py                     主页 / 刷题 / 统计 / 组卷 / 交卷报告 五个页面
 ├─ ui_free.py                自由编程页（草稿、片段、运行、单步执行）
