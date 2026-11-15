@@ -1,0 +1,49 @@
+# 只把跑服务需要的东西送进镜像：backend/app + web + 依赖清单。
+# 其余（桌面版产物、文档、截图、临时目录）都在本地留着，别让镜像胖到几百 MB。
+
+.git
+.github
+.editorconfig
+.gitattributes
+.gitignore
+
+# 桌面版打包产物与依赖（PyInstaller、pylibs 里的几千个文件）
+/dist
+/build
+/pylibs
+/downloads
+*.spec
+
+# 文档、截图、演示素材
+/docs
+/shots
+*.docx
+*.pptx
+*.pdf
+*.mp4
+*.gif
+*.zip
+*.exe
+*.ico
+*.png
+
+# 本地数据与临时目录（/data 只匹配仓库根，别误伤 backend/app/data/questions.json）
+/data
+/tmp_run
+pytest-out.txt
+
+# 前端（React + Vite）：镜像里用 node 阶段重新构建，不送本地产物进去
+/frontend/node_modules
+/frontend/dist
+/frontend/.tmp
+/frontend/.vite
+
+# Python 缓存
+__pycache__
+**/__pycache__
+*.py[cod]
+.pytest_cache
+
+# 本地环境文件（密钥不进镜像）
+.env
+deploy/.env

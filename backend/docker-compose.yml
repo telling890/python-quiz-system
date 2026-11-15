@@ -1,0 +1,105 @@
+services:
+  api:
+    build:
+      # 上下文是仓库根：镜像里要同时有 backend/app 和 web/（网页版前端）
+      context: ..
+      dockerfile: backend/Dockerfile
+    image: python-quiz-api:latest
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      QUIZ_ENV: prod
+      QUIZ_JWT_SECRET: ${QUIZ_JWT_SECRET:?请在 .env 里设置 QUIZ_JWT_SECRET}
+      QUIZ_DATABASE_URL: sqlite:////data/app.db
+      QUIZ_JUDGE_TIMEOUT: "6"
+      QUIZ_JUDGE_WORKERS: "1"
+      QUIZ_RATE_LIMIT_PER_MINUTE: "120"
+      QUIZ_RATE_LIMIT_AUTH_PER_MINUTE: "10"
+      # 邀请码：留空则任何人可注册；对外公开建议填一个
+      QUIZ_REGISTER_CODE: ${QUIZ_REGISTER_CODE:-}
+    volumes:
+      - quiz-data:/data
+    ports:
+      - "127.0.0.1:8000:8000"
+    # 判题会跑陌生人代码：尽量收窄权限
+    read_only: true
+    tmpfs:
+      - /tmp:size=256m,noexec,nosuid
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    pids_limit: 256
+    mem_limit: 1g
+    cpus: "2.0"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://127.0.0.1:8000/healthz', timeout=3).status == 200 else 1)"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+  # 判题量大时把判题拆到独立容器：API 保留 1 个线程应急，worker 容器扛主力。
+  # 提交靠数据库认领，两个容器同时存在也不会重复判题。
+  worker:
+    build:
+      context: ..
+      dockerfile: backend/Dockerfile
+    image: python-quiz-api:latest
+    restart: unless-stopped
+    command: ["python", "-m", "app.judge.worker_entry"]
+    environment:
+      QUIZ_ENV: prod
+      QUIZ_JWT_SECRET: ${QUIZ_JWT_SECRET:?请在 .env 里设置 QUIZ_JWT_SECRET}
+      QUIZ_DATABASE_URL: sqlite:////data/app.db
+      QUIZ_JUDGE_WORKERS: "2"
+    volumes:
+      - quiz-data:/data
+    read_only: true
+    tmpfs:
+      - /tmp:size=256m,noexec,nosuid
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    pids_limit: 256
+    mem_limit: 1g
+    cpus: "2.0"
+    depends_on:
+      api:
+        condition: service_healthy
+
+  # 反向代理 + 自动 HTTPS：域名写在 Caddyfile 里（当前是 pyquit.fun）
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    ports:
+      - "80:80"          # HTTP-01 验证必需，也用于跳转 HTTPS
+      - "443:443"
+      - "443:443/udp"    # HTTP/3
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data      # 证书与密钥，别删，删了会重新申请（有频率限制）
+    depends_on:
+      api:
+        condition: service_healthy
+
+  # 如果你更想用 nginx（它有 limit_req 按 IP 限流），把上面 caddy 注释掉，
+  # 换成下面这段，并按 DEPLOY.md 第 6 节补 TLS。两者只能起一个（都抢 80/443）。
+  # nginx:
+  #   image: nginx:1.27-alpine
+  #   restart: unless-stopped
+  #   ports:
+  #     - "80:80"
+  #     - "443:443"
+  #   volumes:
+  #     - ./nginx.conf:/etc/nginx/conf.d/default.conf:ro
+  #     - /etc/letsencrypt:/etc/letsencrypt:ro
+  #     - /var/www/certbot:/var/www/certbot:ro
+  #   depends_on:
+  #     api:
+  #       condition: service_healthy
+
+volumes:
+  quiz-data:
+  caddy-data:

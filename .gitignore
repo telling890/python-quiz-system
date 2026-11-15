@@ -25,5 +25,17 @@ state.json
 data/
 *.json.bak
 
+# 例外：后端要用的题库种子文件（data/ 上面那条会把所有 data 目录都忽略掉）
+!backend/app/data/
+backend/app/data/*
+!backend/app/data/questions.json
+
+# 前端（React + Vite）：依赖与构建产物都不入库，部署时现构建
+frontend/node_modules/
+frontend/dist/
+frontend/.tmp/
+frontend/.vite/
+frontend/*.tsbuildinfo
+
 # Office 临时锁文件
 ~$*

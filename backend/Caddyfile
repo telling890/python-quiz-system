@@ -1,0 +1,52 @@
+# Caddy 反向代理：自动申请并续期 HTTPS 证书
+#
+# 你的域名：pyquit.fun（阿里云注册，DNS 也托管在阿里云 hichina）
+# 换域名只需要改下面这一行；多个域名用逗号分隔，证书会一起签。
+#
+# 前置条件：
+#   1. pyquit.fun 的 A 记录已指向这台服务器（阿里云控制台 → 解析）
+#   2. 安全组 / 防火墙放行 80 和 443
+#      80 必须开：Let's Encrypt 的 HTTP-01 验证要访问它
+#
+# 首次启动会自动申请证书，日志里看到 "certificate obtained successfully" 就成了。
+# 续期也是 Caddy 自己做的，不用配 cron。
+#
+# ⚠️ 只写 pyquit.fun，不要顺手加 www：
+#    Caddy 会给这个块里的**所有名字一起签一张证书**，只要 www 的 A 记录没配好，
+#    整个证书申请就会失败，站点直接起不来。
+#    等 www 的 A 记录也配好、并且能 ping 通之后，再把名字改成：
+#        pyquit.fun, www.pyquit.fun {
+
+pyquit.fun {
+	encode zstd gzip
+
+	header {
+		X-Content-Type-Options nosniff
+		X-Frame-Options SAMEORIGIN
+		Referrer-Policy same-origin
+		-Server
+	}
+
+	# 页面和接口都不该被缓存：换账号 / 换令牌时最容易踩这个坑
+	@dynamic path / /auth.js /api/*
+	header @dynamic Cache-Control "no-store"
+
+	# 判题请求体很小（代码上限 2 万字符），限制一下防止被灌大包
+	request_body {
+		max_size 2MB
+	}
+
+	reverse_proxy api:8000 {
+		# 应用里的限流按 IP 算，不传真实 IP 的话所有人会被算成 Caddy 的地址
+		header_up X-Real-IP {remote_host}
+		header_up X-Forwarded-Proto {scheme}
+	}
+
+	log {
+		output file /data/access.log {
+			roll_size 10MiB
+			roll_keep 5
+		}
+		format console
+	}
+}
