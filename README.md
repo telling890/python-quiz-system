@@ -165,6 +165,8 @@ py -3.10 -m pytest -q                                  # 67 个测试
 - **刷新不丢**：组卷进度存 `localStorage`，回来接着做；编辑器内容按题号保留
 - **外观跟随系统**：默认跟系统的浅色/深色（`prefers-color-scheme`），侧栏底部可手动固定
   「跟随系统 / 浅色 / 深色」，选择会记住；代码编辑器、图表、弹窗遮罩一起换，切换不闪白
+
+![浅色模式](shots/frontend/53-live-light-dashboard.png)
 - **移动端**：侧栏变抽屉 + 底部导航，手机竖屏也能刷
 
 ![新前端 · 单步追踪](shots/frontend/11-trace.png)
