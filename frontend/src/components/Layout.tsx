@@ -17,6 +17,7 @@ import { useAuth } from "../lib/auth";
 import { useBank } from "../lib/bank";
 import { IS_STATIC } from "../lib/api";
 import { pct } from "../lib/format";
+import { ThemeCycleButton, ThemeSwitch } from "./ThemeSwitch";
 import { cls, ProgressBar, useToast } from "./ui";
 
 const NAV = [
@@ -113,6 +114,7 @@ export default function Layout() {
       </div>
       <NavItems />
       <div className="mt-auto flex flex-col gap-2">
+        <ThemeSwitch />
         <button
           type="button"
           onClick={onRefresh}
@@ -150,7 +152,7 @@ export default function Layout() {
       {/* 移动端抽屉 */}
       {drawer ? (
         <div className="fixed inset-0 z-40 lg:hidden">
-          <div className="absolute inset-0 bg-ink-950/80 backdrop-blur-sm" onClick={() => setDrawer(false)} />
+          <div className="absolute inset-0 overlay" onClick={() => setDrawer(false)} />
           <aside className="animate-rise absolute inset-y-0 left-0 w-[16rem] border-r border-line bg-ink-900">
             {sidebar}
           </aside>
@@ -169,8 +171,11 @@ export default function Layout() {
             {drawer ? <X size={18} /> : <Menu size={18} />}
           </button>
           <span className="text-sm font-semibold">Python 刷题系统</span>
-          <span className="rounded-full bg-brand-500/15 px-2 py-1 text-[0.7rem] tabular-nums text-brand-300">
-            {stats.solved}/{stats.total}
+          <span className="flex items-center gap-1.5">
+            <span className="rounded-full bg-brand-500/15 px-2 py-1 text-[0.7rem] tabular-nums text-brand-300">
+              {stats.solved}/{stats.total}
+            </span>
+            <ThemeCycleButton />
           </span>
         </header>
 

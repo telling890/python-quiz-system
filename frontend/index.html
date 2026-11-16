@@ -7,6 +7,22 @@
     <link rel="icon" type="image/svg+xml" href="./favicon.svg" />
     <meta name="description" content="Python 程序设计刷题系统 · 边写边判、错题本、执行追踪、模拟组卷" />
     <title>Python 刷题系统</title>
+    <script>
+      // 首帧之前就把主题定下来，避免深色用户先看到白闪一下
+      (function () {
+        try {
+          var saved = localStorage.getItem("pyquiz.theme");
+          if (saved === "light" || saved === "dark") {
+            document.documentElement.setAttribute("data-theme", saved);
+            document
+              .querySelector('meta[name="theme-color"]')
+              ?.setAttribute("content", saved === "light" ? "#eef1f7" : "#0b1020");
+          }
+        } catch (e) {
+          /* 隐私模式下 localStorage 不可用，按系统走 */
+        }
+      })();
+    </script>
   </head>
   <body>
     <div id="root"></div>

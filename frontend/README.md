@@ -128,7 +128,7 @@ frontend/
         ├── FreeCoding.tsx  Stats.tsx  Exam.tsx  NotFound.tsx
 ```
 
-## 四、页面与功能
+## 五、页面与功能
 
 | 路由 | 做什么 |
 |---|---|
@@ -148,9 +148,30 @@ frontend/
 - 刷新不丢：编辑器内容按题号记在内存里，组卷进度存 `localStorage`，回来能接着做。
 - 移动端：侧栏变抽屉 + 底部五栏导航，刷题页可横屏写代码。
 
-## 五、和后端的分工
+## 六、和后端的分工
 
 后端 `/api/v1` 只提供账号、题库（139 题全量 155 KB，含测试用例）、进度读写、异步判题、片段/草稿；
 **组卷、错题本、章节统计、搜索、CSV 导出全在前端算**——因为 `/bank` 一次就把题目和我的进度都发下来了，
 本地过滤比再开接口快得多。单步追踪仍走老兼容层 `POST /api/trace`（v1 暂无等价接口），
 等后端补上就可以直接换。
+
+## 七、主题（浅色 / 深色）
+
+默认**跟随系统**（`prefers-color-scheme`），侧栏底部和移动端顶栏可以手动固定
+「跟随系统 / 浅色 / 深色」，选择存 `localStorage` 的 `pyquiz.theme`。
+
+实现分三层：
+
+| 位置 | 干什么 |
+|---|---|
+| `src/styles.css` | `@theme` 里是**深色默认值**；`:root[data-theme="light"]` 与 `@media (prefers-color-scheme: light)` 两处给同一套浅色令牌（改的时候别只改一处）。阴影/遮罩/光晕/滚动条/导航高亮字色这些不在 Tailwind 令牌里的，也集中在这里 |
+| `src/lib/theme.tsx` | `ThemeProvider` 把 `data-theme` 写到 `<html>`；`auto` 时**不写属性**，把决定权交回 CSS 媒体查询；同时监听系统切换 |
+| `index.html` | 首帧之前的内联脚本先应用已保存的选择，避免深色用户看到白闪 |
+
+几个注意点：
+
+- Tailwind v4 的工具类（`bg-ink-850`、`text-fg-muted`…）编译成 `var(--color-*)`，
+  所以**只覆盖自定义属性**就能整套换肤，不用给每个组件写 `dark:` 变体
+- 图表颜色用 `var(--color-ok-400)` 这类变量而不是写死 hex（`Charts.tsx`、`Stats.tsx`）
+- 代码编辑器跟着切：浅色用 CodeMirror 自带 light，深色用 `oneDark`（`CodeEditor.tsx` 用 `useTheme()`）
+- 语义色在浅色下降了亮度（`--color-ok-400: #047857` 等），保证白底上的对比度

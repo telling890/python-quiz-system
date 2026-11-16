@@ -40,6 +40,109 @@
     "Liberation Mono", Menlo, monospace;
 }
 
+/* ------------------------------------------------------------------
+   主题相关但不在 Tailwind 令牌里的东西：阴影 / 遮罩 / 光晕 / 滚动条 / 导航高亮字色
+   默认（深色）在这里，浅色在下面 [data-theme="light"] 与媒体查询里覆盖
+   ------------------------------------------------------------------ */
+:root {
+  --shadow-panel: 0 1px 0 rgba(255, 255, 255, 0.03) inset,
+    0 18px 40px -28px rgba(0, 0, 0, 0.9);
+  --overlay: rgba(2, 6, 23, 0.72);
+  --glow-a: rgba(99, 102, 241, 0.16);
+  --glow-b: rgba(34, 211, 238, 0.1);
+  --scroll-thumb: #22304d;
+  --scroll-thumb-hover: #33456b;
+  --nav-active-fg: #c7d2fe;
+  --nav-active-fg-hover: #e0e7ff;
+}
+
+/* 浅色：纸感，背景比面板稍微灰一点，靠描边和阴影分层
+   注意：下面 @media (prefers-color-scheme: light) 里的那份要跟这里保持一致 */
+:root[data-theme="light"] {
+  color-scheme: light;
+
+  --color-ink-950: #eef1f7;
+  --color-ink-900: #f7f9fc;
+  --color-ink-850: #ffffff;
+  --color-ink-800: #f4f7fc;
+  --color-ink-750: #edf2f9;
+  --color-ink-700: #dfe6f1;
+  --color-ink-600: #cdd8e7;
+
+  --color-line: #dce3ee;
+  --color-line-soft: #e8edf6;
+
+  --color-fg: #0f172a;
+  --color-fg-muted: #46536b;
+  --color-fg-dim: #74829b;
+
+  --color-brand-300: #4338ca;
+  --color-brand-400: #4f46e5;
+  --color-brand-500: #4f46e5;
+  --color-brand-600: #4338ca;
+
+  --color-aqua-400: #0e7490;
+  --color-ok-400: #047857;
+  --color-ok-500: #059669;
+  --color-warn-400: #b45309;
+  --color-bad-400: #dc2626;
+  --color-bad-500: #b91c1c;
+
+  --shadow-panel: 0 1px 2px rgba(15, 23, 42, 0.06),
+    0 12px 28px -20px rgba(15, 23, 42, 0.35);
+  --overlay: rgba(15, 23, 42, 0.35);
+  --glow-a: rgba(99, 102, 241, 0.1);
+  --glow-b: rgba(34, 211, 238, 0.08);
+  --scroll-thumb: #c7d1e0;
+  --scroll-thumb-hover: #aab8cd;
+  --nav-active-fg: #3730a3;
+  --nav-active-fg-hover: #312e81;
+}
+
+/* 跟随系统：没手动指定（auto）时按系统深浅走 */
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme="dark"]) {
+    color-scheme: light;
+
+    --color-ink-950: #eef1f7;
+    --color-ink-900: #f7f9fc;
+    --color-ink-850: #ffffff;
+    --color-ink-800: #f4f7fc;
+    --color-ink-750: #edf2f9;
+    --color-ink-700: #dfe6f1;
+    --color-ink-600: #cdd8e7;
+
+    --color-line: #dce3ee;
+    --color-line-soft: #e8edf6;
+
+    --color-fg: #0f172a;
+    --color-fg-muted: #46536b;
+    --color-fg-dim: #74829b;
+
+    --color-brand-300: #4338ca;
+    --color-brand-400: #4f46e5;
+    --color-brand-500: #4f46e5;
+    --color-brand-600: #4338ca;
+
+    --color-aqua-400: #0e7490;
+    --color-ok-400: #047857;
+    --color-ok-500: #059669;
+    --color-warn-400: #b45309;
+    --color-bad-400: #dc2626;
+    --color-bad-500: #b91c1c;
+
+    --shadow-panel: 0 1px 2px rgba(15, 23, 42, 0.06),
+      0 12px 28px -20px rgba(15, 23, 42, 0.35);
+    --overlay: rgba(15, 23, 42, 0.35);
+    --glow-a: rgba(99, 102, 241, 0.1);
+    --glow-b: rgba(34, 211, 238, 0.08);
+    --scroll-thumb: #c7d1e0;
+    --scroll-thumb-hover: #aab8cd;
+    --nav-active-fg: #3730a3;
+    --nav-active-fg-hover: #312e81;
+  }
+}
+
 @layer base {
   * {
     border-color: var(--color-line-soft);
@@ -59,7 +162,7 @@
     text-rendering: optimizeLegibility;
   }
 
-  /* 顶部两团极淡的光晕，避免纯色背景发闷 */
+  /* 顶部两团极淡的光晕，避免纯色背景发闷（深浅色各一套颜色） */
   body::before {
     content: "";
     position: fixed;
@@ -67,8 +170,8 @@
     pointer-events: none;
     z-index: 0;
     background:
-      radial-gradient(60rem 30rem at 12% -8%, rgba(99, 102, 241, 0.16), transparent 60%),
-      radial-gradient(45rem 25rem at 92% 0%, rgba(34, 211, 238, 0.1), transparent 65%);
+      radial-gradient(60rem 30rem at 12% -8%, var(--glow-a), transparent 60%),
+      radial-gradient(45rem 25rem at 92% 0%, var(--glow-b), transparent 65%);
   }
 
   ::selection {
@@ -85,13 +188,13 @@
     background: transparent;
   }
   ::-webkit-scrollbar-thumb {
-    background: #22304d;
+    background: var(--scroll-thumb);
     border-radius: 999px;
     border: 2px solid transparent;
     background-clip: content-box;
   }
   ::-webkit-scrollbar-thumb:hover {
-    background: #33456b;
+    background: var(--scroll-thumb-hover);
     background-clip: content-box;
   }
 
@@ -106,8 +209,13 @@
     background-color: color-mix(in oklab, var(--color-ink-850) 88%, transparent);
     border: 1px solid var(--color-line);
     border-radius: var(--radius-2xl);
-    box-shadow: 0 1px 0 rgba(255, 255, 255, 0.03) inset,
-      0 18px 40px -28px rgba(0, 0, 0, 0.9);
+    box-shadow: var(--shadow-panel);
+  }
+
+  /* 弹窗/抽屉背后的遮罩：深浅色都要压得住内容 */
+  .overlay {
+    background: var(--overlay);
+    backdrop-filter: blur(4px);
   }
 
   .panel-flat {
@@ -235,12 +343,12 @@
   }
   .nav-item-active {
     background: color-mix(in oklab, var(--color-brand-500) 18%, transparent);
-    color: #c7d2fe;
+    color: var(--nav-active-fg);
     box-shadow: inset 0 0 0 1px rgba(99, 102, 241, 0.35);
   }
   .nav-item-active:hover {
     background: color-mix(in oklab, var(--color-brand-500) 24%, transparent);
-    color: #e0e7ff;
+    color: var(--nav-active-fg-hover);
   }
 
   .code-surface {

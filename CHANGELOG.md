@@ -4,6 +4,12 @@
 
 ### 新增
 
+- **浅色/深色跟随系统**：网页版不再写死暗色。
+  - 默认用系统的 `prefers-color-scheme`（浅色就是浅色），侧栏底部/移动端顶栏可手动固定
+    「跟随系统 / 浅色 / 深色」，存在 `localStorage`，首帧前就应用（不闪白）
+  - 配色不是简单反色：浅色是纸感面板 + 细描边 + 淡阴影，语义色（通过/未通过/超时）都换了深一档的色值保证对比度
+  - 代码编辑器跟着切（浅色用 CodeMirror light、深色用 oneDark），图表、弹窗遮罩、滚动条、导航高亮一整套都走 CSS 变量
+  - 主题令牌在 `frontend/src/styles.css`，切换逻辑在 `frontend/src/lib/theme.tsx`
 - **纯静态版（GitHub Pages）**：同一份前端多打一个静态包，没有后端也能直接用。
   - 题库在构建时内置成 `bank.json`（139 题 / 338 用例），进度/收藏/错题本/草稿/片段全存 `localStorage`
   - **判题改在浏览器里跑真 Python**（Pyodide / WASM CPython），输出归一化与首行差异规则和后端逐字一致

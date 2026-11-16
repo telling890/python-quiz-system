@@ -4,6 +4,7 @@ import { ArrowRight, Eye, EyeOff, KeyRound, Sparkles, Terminal, User } from "luc
 import { useAuth } from "../lib/auth";
 import { ApiError, IS_STATIC } from "../lib/api";
 import { Button, cls, useToast } from "../components/ui";
+import { ThemeCycleButton } from "../components/ThemeSwitch";
 
 type Mode = "login" | "register";
 
@@ -147,7 +148,10 @@ export default function LoginPage() {
       </section>
 
       {/* 右：表单区 */}
-      <section className="flex items-center justify-center px-4 py-10 sm:px-8">
+      <section className="relative flex items-center justify-center px-4 py-10 sm:px-8">
+        <div className="absolute right-4 top-4">
+          <ThemeCycleButton />
+        </div>
         <div className="w-full max-w-sm">
           <div className="mb-6 flex items-center gap-3 lg:hidden">
             <span className="grid size-9 place-items-center rounded-xl bg-gradient-to-br from-brand-500 to-aqua-400 text-white">

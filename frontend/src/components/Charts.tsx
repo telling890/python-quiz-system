@@ -33,7 +33,7 @@ export function Donut({
   return (
     <div className="relative" style={{ width: size, height: size }}>
       <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} className="-rotate-90">
-        <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="#22304d" strokeWidth={thickness} />
+        <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="var(--color-ink-700)" strokeWidth={thickness} />
         {total > 0 &&
           slices.map((s) => {
             const len = (s.value / total) * c;
@@ -87,7 +87,7 @@ export function Legend({ slices, total }: { slices: Slice[]; total?: number }) {
 export function Trend({
   points,
   height = 150,
-  color = "#818cf8",
+  color = "var(--color-brand-400)",
   formatValue = (v: number) => `${v}`,
 }: {
   points: Array<{ label: string; value: number }>;
@@ -124,7 +124,16 @@ export function Trend({
           </linearGradient>
         </defs>
         {[0.25, 0.5, 0.75].map((f) => (
-          <line key={f} x1={0} x2={w} y1={h * f} y2={h * f} stroke="#1d2a44" strokeWidth={0.5} strokeDasharray="2 2" />
+          <line
+            key={f}
+            x1={0}
+            x2={w}
+            y1={h * f}
+            y2={h * f}
+            stroke="var(--color-line)"
+            strokeWidth={0.5}
+            strokeDasharray="2 2"
+          />
         ))}
         <path d={area} fill={`url(#fill-${gid})`} />
         <path d={line} fill="none" stroke={color} strokeWidth={1.6} strokeLinejoin="round" strokeLinecap="round" />

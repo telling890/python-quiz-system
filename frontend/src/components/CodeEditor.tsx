@@ -5,6 +5,7 @@ import { oneDark } from "@codemirror/theme-one-dark";
 import { EditorView, keymap } from "@codemirror/view";
 import { Prec } from "@codemirror/state";
 import { cls } from "./ui";
+import { useTheme } from "../lib/theme";
 
 export interface CodeEditorProps {
   value: string;
@@ -33,6 +34,9 @@ export default function CodeEditor({
   const onSaveRef = useRef(onSave);
   onRunRef.current = onRun;
   onSaveRef.current = onSave;
+
+  // 编辑器跟着页面主题走：浅色用 CodeMirror 自带 light，深色用 oneDark
+  const { resolved } = useTheme();
 
   const extensions = useMemo(
     () => [
@@ -75,7 +79,7 @@ export default function CodeEditor({
       <CodeMirror
         value={value}
         onChange={(next) => onChange(next)}
-        theme={oneDark}
+        theme={resolved === "light" ? "light" : oneDark}
         extensions={extensions}
         height="100%"
         readOnly={readOnly}

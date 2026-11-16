@@ -19,11 +19,11 @@ import {
 import { useToast } from "../components/ui";
 
 const COLOR = {
-  ok: "#34d399",
-  bad: "#f87171",
-  idle: "#2b3a58",
-  brand: "#818cf8",
-  aqua: "#22d3ee",
+  ok: "var(--color-ok-400)",
+  bad: "var(--color-bad-400)",
+  idle: "var(--color-ink-600)",
+  brand: "var(--color-brand-400)",
+  aqua: "var(--color-aqua-400)",
 };
 
 export default function StatsPage() {

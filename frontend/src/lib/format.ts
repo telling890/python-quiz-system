@@ -2,7 +2,8 @@ import type { Chapter, LastStatus, Question, Stats } from "./types";
 
 /* ------------------------------------------------------------------ 章节配色 */
 
-const TONES = ["#818cf8", "#22d3ee", "#34d399", "#fbbf24", "#f472b6", "#a78bfa", "#fb923c"];
+// 章节配色：选的是深浅两种背景都够看的中间调（不是 400 系浅色）
+const TONES = ["#6366f1", "#0891b2", "#059669", "#d97706", "#db2777", "#7c3aed", "#ea580c"];
 
 /** 章节 → 稳定颜色（按章节在列表中的序号，换顺序也不跳色） */
 export function chapterColor(chapters: Chapter[], chapterId: string): string {

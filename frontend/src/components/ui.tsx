@@ -280,7 +280,7 @@ export function Modal({
   if (!open) return null;
   return createPortal(
     <div className="fixed inset-0 z-50 flex items-end justify-center p-0 sm:items-center sm:p-6">
-      <div className="absolute inset-0 animate-fade-in bg-ink-950/80 backdrop-blur-sm" onClick={onClose} />
+      <div className="overlay absolute inset-0 animate-fade-in" onClick={onClose} />
       <div
         role="dialog"
         aria-modal="true"
