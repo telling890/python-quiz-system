@@ -93,8 +93,9 @@ src/lib/static/
 - **深链接靠 `404.html`**：GitHub Pages 找不到路径时返回 404.html，构建脚本会把 `index.html` 复制一份。
 - **进度不跨设备**：这是纯静态的必然结果；要同步就用后端版（`/app`）。
 
-部署工作流：`.github/workflows/pages.yml`（推 `main` 自动构建 + 发布）。
-仓库第一次要在 `Settings → Pages → Source` 选 **GitHub Actions**。
+部署工作流：`.github/workflows/pages.yml` —— 推 `main` 自动构建静态版并**推送 `gh-pages` 分支**，
+GitHub Pages 直接读该分支（`Deploy from a branch → gh-pages / root`）。
+线上地址：<https://telling890.github.io/python-quiz-system/>
 
 ## 四、目录结构
 

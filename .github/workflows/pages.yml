@@ -1,7 +1,8 @@
-name: 部署网页版到 GitHub Pages
+name: 发布网页版（gh-pages 分支）
 
-# 纯静态版：题库内置、进度存浏览器、判题用 Pyodide（WebAssembly 里的 CPython）。
-# 不需要任何服务器，打开 https://<用户名>.github.io/<仓库名>/ 就能用。
+# 纯静态版：题库内置、进度存浏览器、判题用 Pyodide（WASM 里的 CPython）。
+# 构建产物推到 gh-pages 分支，GitHub Pages 直接读这个分支，不需要任何服务器，
+# 也不需要去设置里选 "GitHub Actions"（分支部署最简单、最不容易踩权限坑）。
 on:
   push:
     branches: [main]
@@ -11,19 +12,16 @@ on:
       - ".github/workflows/pages.yml"
   workflow_dispatch:
 
-# 只保留最新一次部署
 concurrency:
   group: pages
   cancel-in-progress: true
 
 permissions:
-  contents: read
-  pages: write
-  id-token: write
+  contents: write
 
 jobs:
-  build:
-    name: 构建静态版
+  deploy:
+    name: 构建并发布
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -42,36 +40,31 @@ jobs:
       - name: 安装依赖
         run: npm ci --no-audit --no-fund
 
-      # base 由 scripts/build.mjs 从 GITHUB_REPOSITORY 推出来：/仓库名/
-      - name: 构建（静态版）
+      # base 由 scripts/build.mjs 从 GITHUB_REPOSITORY 推出来：/<仓库名>/
+      # 同时会把题库复制成 bank.json、并生成 404.html（前端路由回退）
+      - name: 构建静态版
         run: npm run build:static
 
       - name: 检查产物
         run: |
           test -f dist/index.html
           test -f dist/bank.json
+          test -f dist/404.html
           test -d dist/assets
           du -sh dist
 
-      - name: 配置 Pages
-        uses: actions/configure-pages@v5
-        with:
-          # 仓库还没开 Pages 时顺手打开（需要仓库管理员权限；失败就去 Settings → Pages 手动选 GitHub Actions）
-          enablement: true
+      - name: 停用 Jekyll（下划线开头的文件会被它忽略）
+        run: touch dist/.nojekyll
 
-      - name: 上传产物
-        uses: actions/upload-pages-artifact@v3
-        with:
-          path: frontend/dist
-
-  deploy:
-    name: 发布
-    needs: build
-    runs-on: ubuntu-latest
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
-    steps:
-      - name: 部署到 Pages
-        id: deployment
-        uses: actions/deploy-pages@v4
+      - name: 推送到 gh-pages
+        working-directory: frontend/dist
+        env:
+          TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          git init -q
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git checkout -q -b gh-pages
+          git add -A
+          git commit -q -m "deploy: 静态版网页（${GITHUB_SHA:0:7}）"
+          git push -q --force "https://x-access-token:${TOKEN}@github.com/${GITHUB_REPOSITORY}.git" gh-pages

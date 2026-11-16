@@ -223,10 +223,15 @@ npm run build:static                     # 产物 frontend/dist（含 bank.json 
 npx vite preview --outDir dist           # 或任意静态服务器打开 dist
 ```
 
-部署：仓库已经带好工作流 `.github/workflows/pages.yml`，推到 `main` 就会自动构建 + 发布。
-**第一次需要在 GitHub 上点一下**：仓库 `Settings → Pages → Build and deployment → Source` 选
-**GitHub Actions**（选完再触发一次工作流，或在 Actions 页点 "Re-run jobs"）。
-之后每次改前端都会自动更新。
+部署：仓库已经带好工作流 `.github/workflows/pages.yml` —— 推到 `main` 就会自动构建静态版并
+**推送到 `gh-pages` 分支**，GitHub Pages 直接读这个分支，不需要任何服务器、也不用在设置里折腾权限。
+
+> **当前线上地址：<https://telling890.github.io/python-quiz-system/>**（已启用，打开即用）
+>
+> 换仓库/换账号时只需要做一次：`Settings → Pages → Build and deployment → Source`
+> 选 **Deploy from a branch**，分支选 `gh-pages`、目录 `/ (root)`，保存后等 1 分钟。
+> （如果更想用 Actions 产物发布，把 Source 改成 **GitHub Actions** 也行，但那条路需要仓库管理员权限，
+>  `configure-pages` 的 `enablement` 在普通 token 下会失败。）
 
 ### 数据存在哪（便携）
 

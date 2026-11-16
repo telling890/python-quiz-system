@@ -9,7 +9,8 @@
   - **判题改在浏览器里跑真 Python**（Pyodide / WASM CPython），输出归一化与首行差异规则和后端逐字一致
   - 单步执行用 `sys.settrace` 在浏览器里逐行记录（800 步 / 5 秒上限），死循环靠杀 Web Worker 兜底
   - 免注册：起个昵称就开始；`npm run build:static` 一键构建，`base` 自动取 `/<仓库名>/`
-  - 新增 `.github/workflows/pages.yml`（推 main 自动构建 + 发布），产物带 `404.html` 做前端路由回退
+  - 新增 `.github/workflows/pages.yml`（推 main 自动构建并推送 `gh-pages` 分支），产物带 `404.html` 做前端路由回退
+  - 线上地址：https://telling890.github.io/python-quiz-system/ （Pages 源 = `gh-pages` 分支）
 - **React 新前端**（`frontend/`，挂在 `/app`）：把 797 行的单文件网页版重写成正经前端，
   接口从给老页面用的兼容层 `/api/*` 换成版本化的 `/api/v1`，老页面继续留在 `/` 不动。
   - React 18 + Vite + TypeScript + Tailwind CSS 4，按路由拆包（首屏 68 KB gzip，编辑器单独懒加载）
