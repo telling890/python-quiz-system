@@ -75,9 +75,11 @@ export function timeAgo(iso: string): string {
   return `${Math.floor(months / 12)} 年前`;
 }
 
-export function fmtDuration(ms: number): string {
-  if (!ms) return "—";
-  if (ms < 1000) return `${ms} ms`;
+export function fmtDuration(ms: number | null | undefined): string {
+  // 没测到（undefined / NaN）才算未知；0 是「测了但很快」，别显示成「—」
+  if (ms === null || ms === undefined || !Number.isFinite(ms)) return "—";
+  if (ms < 0.1) return "<0.1 ms";
+  if (ms < 1000) return `${Number.isInteger(ms) ? ms : ms.toFixed(1)} ms`;
   return `${(ms / 1000).toFixed(2)} s`;
 }
 

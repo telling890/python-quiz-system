@@ -417,10 +417,18 @@ export default function Practice() {
                       loading={busy === "run"}
                       disabled={busy !== "idle"}
                       icon={<Play size={13} />}
+                      title="只跑一遍看输出，不判分、不记进度"
                     >
                       运行
                     </Button>
-                    <Button size="sm" onClick={onJudge} loading={busy === "judge"} disabled={busy !== "idle"} icon={<Send size={13} />}>
+                    <Button
+                      size="sm"
+                      onClick={onJudge}
+                      loading={busy === "judge"}
+                      disabled={busy !== "idle"}
+                      icon={<Send size={13} />}
+                      title="逐条用例判分，并把结果记进进度"
+                    >
                       判题
                     </Button>
                   </div>

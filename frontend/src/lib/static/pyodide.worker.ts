@@ -72,7 +72,7 @@ def _pyquiz_run(code, stdin_text):
     sys.stdin = stream
     builtins.input = _reader(stream)
     err = ""
-    started = time.time()
+    started = time.perf_counter()
     try:
         exec(compile(code, _FILENAME, "exec"), {"__name__": "__main__", "__file__": _FILENAME})
     except SystemExit:
@@ -81,8 +81,10 @@ def _pyquiz_run(code, stdin_text):
         err = "".join(traceback.format_exception_only(*sys.exc_info()[:2])).strip()
     finally:
         sys.stdout, sys.stdin, builtins.input = old_out, old_in, old_input
+    # 浏览器里跑一段小代码可能不到 1ms，用 int() 会变成 0（界面上就成了「—」），
+    # 所以这里保留 0.1ms 精度
     return json.dumps({"output": buf.getvalue(), "error": err,
-                       "duration_ms": int((time.time() - started) * 1000)}, ensure_ascii=False)
+                       "duration_ms": round((time.perf_counter() - started) * 1000, 2)}, ensure_ascii=False)
 
 
 def _pyquiz_trace(code, stdin_text, timeout=5.0, max_steps=800):
