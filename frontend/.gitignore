@@ -4,3 +4,6 @@ dist/
 .vite/
 *.tsbuildinfo
 npm-debug.log*
+
+# 静态版构建时从 backend/app/data/questions.json 复制过来，不入库
+public/bank.json

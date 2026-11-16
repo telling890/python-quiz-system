@@ -1,0 +1,77 @@
+name: 部署网页版到 GitHub Pages
+
+# 纯静态版：题库内置、进度存浏览器、判题用 Pyodide（WebAssembly 里的 CPython）。
+# 不需要任何服务器，打开 https://<用户名>.github.io/<仓库名>/ 就能用。
+on:
+  push:
+    branches: [main]
+    paths:
+      - "frontend/**"
+      - "backend/app/data/questions.json"
+      - ".github/workflows/pages.yml"
+  workflow_dispatch:
+
+# 只保留最新一次部署
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+jobs:
+  build:
+    name: 构建静态版
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v4
+
+      - name: 安装 Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: 安装依赖
+        run: npm ci --no-audit --no-fund
+
+      # base 由 scripts/build.mjs 从 GITHUB_REPOSITORY 推出来：/仓库名/
+      - name: 构建（静态版）
+        run: npm run build:static
+
+      - name: 检查产物
+        run: |
+          test -f dist/index.html
+          test -f dist/bank.json
+          test -d dist/assets
+          du -sh dist
+
+      - name: 配置 Pages
+        uses: actions/configure-pages@v5
+        with:
+          # 仓库还没开 Pages 时顺手打开（需要仓库管理员权限；失败就去 Settings → Pages 手动选 GitHub Actions）
+          enablement: true
+
+      - name: 上传产物
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: frontend/dist
+
+  deploy:
+    name: 发布
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: 部署到 Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

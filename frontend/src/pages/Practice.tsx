@@ -15,7 +15,7 @@ import {
   Star,
   XCircle,
 } from "lucide-react";
-import { api, ApiError, awaitSubmission } from "../lib/api";
+import { api, ApiError, awaitSubmission, IS_STATIC } from "../lib/api";
 import { useBank } from "../lib/bank";
 import type { JudgeResult, Question, RunResult, Trace } from "../lib/types";
 import { Badge, Button, Card, EmptyState, Modal, ProgressBar, Segmented, Spinner, cls, useToast } from "../components/ui";
@@ -438,7 +438,10 @@ export default function Practice() {
 
               {busy === "judge" ? (
                 <Card className="flex items-center gap-2 px-4 py-3 text-xs text-fg-muted">
-                  <Spinner size={14} /> 判题进行中：提交已进队列，正在轮询结果…
+                  <Spinner size={14} />
+                  {IS_STATIC
+                    ? "正在浏览器里跑 Python（首次要下载解释器，约 10 MB，之后就快了）…"
+                    : "判题进行中：提交已进队列，正在轮询结果…"}
                 </Card>
               ) : null}
 

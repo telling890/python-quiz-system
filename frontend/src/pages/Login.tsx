@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Navigate, useLocation, useNavigate } from "react-router-dom";
 import { ArrowRight, Eye, EyeOff, KeyRound, Sparkles, Terminal, User } from "lucide-react";
 import { useAuth } from "../lib/auth";
-import { ApiError } from "../lib/api";
+import { ApiError, IS_STATIC } from "../lib/api";
 import { Button, cls, useToast } from "../components/ui";
 
 type Mode = "login" | "register";
@@ -41,6 +41,26 @@ export default function LoginPage() {
     setError("");
 
     const name = username.trim();
+
+    // 静态版（GitHub Pages）：只用昵称，进度存浏览器
+    if (IS_STATIC) {
+      if (name.length < 1) {
+        setError("先起个昵称吧");
+        return;
+      }
+      setBusy(true);
+      try {
+        await login(name, "");
+        toast.ok(`欢迎，${name}`);
+        navigate(from, { replace: true });
+      } catch (err) {
+        setError(err instanceof ApiError ? err.message : "进不去，刷新页面再试");
+      } finally {
+        setBusy(false);
+      }
+      return;
+    }
+
     if (name.length < 3 || name.length > 32) {
       setError("用户名需要 3～32 个字符");
       return;
@@ -120,7 +140,9 @@ export default function LoginPage() {
         </div>
 
         <p className="text-[0.68rem] text-fg-dim">
-          账号与进度保存在你自己部署的后端（FastAPI + SQLite），不经过第三方。
+          {IS_STATIC
+            ? "纯静态版：不用服务器，判题在浏览器里完成，进度存在本机。"
+            : "账号与进度保存在你自己部署的后端（FastAPI + SQLite），不经过第三方。"}
         </p>
       </section>
 
@@ -135,41 +157,49 @@ export default function LoginPage() {
           </div>
 
           <h2 className="text-xl font-semibold tracking-tight">
-            {mode === "login" ? "登录你的账号" : "创建新账号"}
+            {IS_STATIC ? "起个昵称就开始" : mode === "login" ? "登录你的账号" : "创建新账号"}
           </h2>
           <p className="mt-1 text-xs text-fg-dim">
-            {mode === "login" ? "进度、错题本、草稿都会跟着账号走。" : "用户名 3～32 位字母/数字/下划线，密码至少 8 位。"}
+            {IS_STATIC
+              ? "这个版本没有服务器：进度、错题本、草稿都存在你这台设备的浏览器里，判题也在浏览器里跑。"
+              : mode === "login"
+                ? "进度、错题本、草稿都会跟着账号走。"
+                : "用户名 3～32 位字母/数字/下划线，密码至少 8 位。"}
           </p>
 
-          <div className="mt-5 grid grid-cols-2 gap-1 rounded-xl border border-line bg-ink-900 p-1">
-            {(["login", "register"] as Mode[]).map((item) => (
-              <button
-                key={item}
-                type="button"
-                onClick={() => {
-                  setMode(item);
-                  setError("");
-                }}
-                className={cls(
-                  "rounded-lg py-1.5 text-[0.8125rem] font-medium transition-colors",
-                  mode === item ? "bg-brand-500/20 text-brand-300" : "text-fg-muted hover:text-fg",
-                )}
-              >
-                {item === "login" ? "登录" : "注册"}
-              </button>
-            ))}
-          </div>
+          {IS_STATIC ? null : (
+            <div className="mt-5 grid grid-cols-2 gap-1 rounded-xl border border-line bg-ink-900 p-1">
+              {(["login", "register"] as Mode[]).map((item) => (
+                <button
+                  key={item}
+                  type="button"
+                  onClick={() => {
+                    setMode(item);
+                    setError("");
+                  }}
+                  className={cls(
+                    "rounded-lg py-1.5 text-[0.8125rem] font-medium transition-colors",
+                    mode === item ? "bg-brand-500/20 text-brand-300" : "text-fg-muted hover:text-fg",
+                  )}
+                >
+                  {item === "login" ? "登录" : "注册"}
+                </button>
+              ))}
+            </div>
+          )}
 
-          <form onSubmit={submit} className="mt-5 space-y-3.5">
+          <form onSubmit={submit} className={IS_STATIC ? "mt-5 space-y-3.5" : "mt-5 space-y-3.5"}>
             <label className="block">
-              <span className="mb-1.5 block text-xs font-medium text-fg-muted">用户名</span>
+              <span className="mb-1.5 block text-xs font-medium text-fg-muted">
+                {IS_STATIC ? "昵称" : "用户名"}
+              </span>
               <div className="relative">
                 <User size={15} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-fg-dim" />
                 <input
                   className="input pl-9"
                   value={username}
                   onChange={(e) => setUsername(e.target.value)}
-                  placeholder="例如 zhangsan"
+                  placeholder={IS_STATIC ? "例如 小明" : "例如 zhangsan"}
                   autoComplete="username"
                   autoCapitalize="off"
                   spellCheck={false}
@@ -178,31 +208,33 @@ export default function LoginPage() {
               </div>
             </label>
 
-            <label className="block">
-              <span className="mb-1.5 block text-xs font-medium text-fg-muted">密码</span>
-              <div className="relative">
-                <KeyRound size={15} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-fg-dim" />
-                <input
-                  className="input px-9"
-                  type={showPwd ? "text" : "password"}
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  placeholder={mode === "register" ? "至少 8 位" : "输入密码"}
-                  autoComplete={mode === "login" ? "current-password" : "new-password"}
-                  maxLength={128}
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPwd((v) => !v)}
-                  className="absolute right-2.5 top-1/2 -translate-y-1/2 rounded p-1 text-fg-dim hover:text-fg"
-                  aria-label={showPwd ? "隐藏密码" : "显示密码"}
-                >
-                  {showPwd ? <EyeOff size={15} /> : <Eye size={15} />}
-                </button>
-              </div>
-            </label>
+            {IS_STATIC ? null : (
+              <label className="block">
+                <span className="mb-1.5 block text-xs font-medium text-fg-muted">密码</span>
+                <div className="relative">
+                  <KeyRound size={15} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-fg-dim" />
+                  <input
+                    className="input px-9"
+                    type={showPwd ? "text" : "password"}
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    placeholder={mode === "register" ? "至少 8 位" : "输入密码"}
+                    autoComplete={mode === "login" ? "current-password" : "new-password"}
+                    maxLength={128}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPwd((v) => !v)}
+                    className="absolute right-2.5 top-1/2 -translate-y-1/2 rounded p-1 text-fg-dim hover:text-fg"
+                    aria-label={showPwd ? "隐藏密码" : "显示密码"}
+                  >
+                    {showPwd ? <EyeOff size={15} /> : <Eye size={15} />}
+                  </button>
+                </div>
+              </label>
+            )}
 
-            {mode === "register" ? (
+            {!IS_STATIC && mode === "register" ? (
               <label className="block">
                 <span className="mb-1.5 block text-xs font-medium text-fg-muted">
                   邀请码 <span className="font-normal text-fg-dim">（服务端没开就不填）</span>
@@ -224,15 +256,25 @@ export default function LoginPage() {
             ) : null}
 
             <Button type="submit" loading={busy} className="w-full" size="lg">
-              {mode === "login" ? "登录" : "注册并登录"}
+              {IS_STATIC ? "开始使用" : mode === "login" ? "登录" : "注册并登录"}
               {!busy ? <ArrowRight size={15} /> : null}
             </Button>
           </form>
 
           <p className="mt-4 text-center text-[0.7rem] leading-relaxed text-fg-dim">
-            本地后端地址 <code className="text-fg-muted">http://127.0.0.1:8000</code>
-            <br />
-            注册被拒？可能开了邀请码：让管理员在 <code className="text-fg-muted">QUIZ_REGISTER_CODE</code> 里查。
+            {IS_STATIC ? (
+              <>
+                判题用的是 Pyodide（浏览器里的 CPython），首次要下载约 10 MB；
+                <br />
+                进度只在这台设备上，换浏览器/清缓存就没了。
+              </>
+            ) : (
+              <>
+                本地后端地址 <code className="text-fg-muted">http://127.0.0.1:8000</code>
+                <br />
+                注册被拒？可能开了邀请码：让管理员在 <code className="text-fg-muted">QUIZ_REGISTER_CODE</code> 里查。
+              </>
+            )}
           </p>
         </div>
       </section>

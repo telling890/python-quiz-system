@@ -143,6 +143,6 @@ export function questionCode(q: Question): string {
   return `${chapterIndex}-${String(q.no).padStart(2, "0")}`;
 }
 
-export const STARTER_CODE = `# 在这里写 Python 代码。\n# 需要输入时用 input()，后端会自动喂 stdin。\n\n`;
+export const STARTER_CODE = `# 在这里写 Python 代码。\n# 需要输入时用 input()，程序会自动喂 stdin。\n\n`;
 
 export const FREE_STARTER = `# 自由编程：写什么都可以，Ctrl+Enter 运行\n\nname = input()\nprint(f"你好，{name}！")\n`;

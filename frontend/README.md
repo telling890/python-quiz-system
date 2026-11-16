@@ -54,7 +54,49 @@ cd backend && docker compose build && docker compose up -d
 # 新前端: https://你的域名/app
 ```
 
-## 三、目录结构
+## 三、静态版（GitHub Pages）
+
+同一份 `src/` 还能打成**完全静态**的包，挂在 GitHub Pages 上不需要任何服务器：
+
+```powershell
+npm run build:static      # 产物 frontend/dist（含 bank.json + 404.html）
+```
+
+和 `/app` 版差在三个「接口实现」上（页面代码一行没动）：
+
+| | 有后端（默认） | 静态版（`VITE_STATIC=1`） |
+|---|---|---|
+| 认证 | `/api/v1/auth/*` + JWT | 本地昵称，`localStorage` |
+| 题库 | `GET /api/v1/bank` | 构建时内置的 `bank.json` |
+| 判题 | 提交进队列 + 轮询 | **Pyodide** 在 Web Worker 里跑 CPython |
+| 进度 | 服务端 SQLite | `localStorage`（`pyquiz.static.v1`） |
+| base | `/app/` | `/<仓库名>/`（由 `GITHUB_REPOSITORY` 推出） |
+
+实现位置：
+
+```
+src/lib/core.ts            构建模式 / BASE_URL / ApiError / tokenStore
+src/lib/httpApi.ts         有后端的实现（原 api.ts）
+src/lib/static/
+├── apiStatic.ts           静态版实现（题库合并、进度落盘、提交编排）
+├── judge.ts               逐用例判定（规则对齐 judge_question）
+├── compare.ts             normalize_lines / first_diff 的 TS 版
+├── runner.ts              Worker 池 + 超时看门狗（超时就杀掉重建）
+├── pyodide.worker.ts      加载 Pyodide + 注入执行/追踪的 Python 代码
+└── store.ts               localStorage 数据模型
+```
+
+几个刻意的取舍：
+
+- **首次判题要下载 10 MB 左右**：Pyodide 从 jsDelivr CDN 拉，之后走浏览器缓存；进刷题页就会预热。
+- **死循环只能杀 Worker**：浏览器里拿不到 CPU 限额，超时后 Worker 被 terminate，下次调用重新加载解释器。
+- **深链接靠 `404.html`**：GitHub Pages 找不到路径时返回 404.html，构建脚本会把 `index.html` 复制一份。
+- **进度不跨设备**：这是纯静态的必然结果；要同步就用后端版（`/app`）。
+
+部署工作流：`.github/workflows/pages.yml`（推 `main` 自动构建 + 发布）。
+仓库第一次要在 `Settings → Pages → Source` 选 **GitHub Actions**。
+
+## 四、目录结构
 
 ```
 frontend/

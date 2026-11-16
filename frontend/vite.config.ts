@@ -2,10 +2,16 @@ import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 import tailwindcss from "@tailwindcss/vite";
 
-// 构建产物由 FastAPI 挂在 /app 下（见 backend/app/main.py 的 mount_frontend），
-// 所以 base 必须是 /app/，否则 CSS/JS 会 404。
+/**
+ * base 的两种取值：
+ *  - 有后端（FastAPI 挂在 /app）→ "/app/"
+ *  - 静态版（GitHub Pages）→ "/<仓库名>/"，由 scripts/build.mjs 通过 VITE_BASE 传进来
+ */
+const nodeEnv = (globalThis as { process?: { env?: Record<string, string | undefined> } }).process?.env ?? {};
+const base = nodeEnv.VITE_BASE || "/app/";
+
 export default defineConfig({
-  base: "/app/",
+  base,
   plugins: [react(), tailwindcss()],
   server: {
     port: 5173,
@@ -22,5 +28,14 @@ export default defineConfig({
     outDir: "dist",
     sourcemap: false,
     chunkSizeWarningLimit: 1200,
+    rollupOptions: {
+      output: {
+        // 静态版会把 Pyodide（外部 CDN）单独放，别和业务代码混在一起
+        manualChunks: undefined,
+      },
+    },
+  },
+  worker: {
+    format: "es",
   },
 });

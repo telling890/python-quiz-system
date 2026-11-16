@@ -48,3 +48,6 @@ jobs:
           test -f dist/index.html
           test -d dist/assets
           ls -lh dist/assets | head -5
+
+      - name: 静态版构建（GitHub Pages 用的那条路）
+        run: npm run build:static && test -f dist/bank.json && test -f dist/404.html

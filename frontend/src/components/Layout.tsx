@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 import { useAuth } from "../lib/auth";
 import { useBank } from "../lib/bank";
+import { IS_STATIC } from "../lib/api";
 import { pct } from "../lib/format";
 import { cls, ProgressBar, useToast } from "./ui";
 
@@ -104,6 +105,11 @@ export default function Layout() {
         <div className="mt-1.5 text-[0.66rem] text-fg-dim">
           {loading ? "加载中…" : error ? <span className="text-bad-400">{error}</span> : `覆盖率 ${solvedPct}% · 通过 ${stats.passes} 次`}
         </div>
+        {IS_STATIC ? (
+          <div className="mt-1.5 rounded-md border border-line bg-ink-900/60 px-1.5 py-1 text-[0.6rem] leading-snug text-fg-dim">
+            静态版 · 进度存在本机浏览器
+          </div>
+        ) : null}
       </div>
       <NavItems />
       <div className="mt-auto flex flex-col gap-2">

@@ -194,6 +194,40 @@ cd backend && docker compose build && docker compose up -d   # 打开 https://�
 前端自己的说明（目录结构、为什么组卷/错题本/统计都在前端算、接口契约）见
 [`frontend/README.md`](frontend/README.md) 和 [`frontend/API-CONTRACT.md`](frontend/API-CONTRACT.md)。
 
+### 纯静态版（GitHub Pages，点开链接就能用，不需要服务器）
+
+同一份前端还能打成**完全静态**的版本，直接挂 GitHub Pages：没有后端也能用，
+打开 https://telling890.github.io/python-quiz-system/ 就能刷题。
+
+工作原理（和上面的 `/app` 版是同一套页面代码）：
+
+| 需要后端的地方 | 静态版怎么做 |
+|---|---|
+| 题库 | 构建时把 `backend/app/data/questions.json` 复制成 `bank.json` 一起发布（139 题 / 338 用例都带着） |
+| 进度、收藏、错题本、草稿、片段 | 存在浏览器的 `localStorage`（不跨设备，清缓存会没） |
+| 判题 | **Pyodide**：在浏览器里跑真正的 CPython（WebAssembly），输出比对规则与后端逐字一致 |
+| 单步执行 | 同样是 Pyodide，用 `sys.settrace` 在浏览器里逐行记录变量（800 步 / 5 秒上限） |
+| 账号 | 不注册，起个昵称就开始（进度只在本机） |
+
+代价（用之前要知道）：
+
+- 第一次判题要下载约 **10 MB** 的 Python 运行时（CDN 缓存过之后就快了）
+- 死循环靠**杀掉 Web Worker** 兜底（浏览器里没有 cgroup / rlimit），极端情况会丢当前这次执行
+- 换浏览器、换设备、清站点数据 → 进度不一样（要跨设备同步就得用上面的后端版）
+
+本地构建 & 预览：
+
+```powershell
+cd quiz_app\frontend
+npm run build:static                     # 产物 frontend/dist（含 bank.json 和 404.html）
+npx vite preview --outDir dist           # 或任意静态服务器打开 dist
+```
+
+部署：仓库已经带好工作流 `.github/workflows/pages.yml`，推到 `main` 就会自动构建 + 发布。
+**第一次需要在 GitHub 上点一下**：仓库 `Settings → Pages → Build and deployment → Source` 选
+**GitHub Actions**（选完再触发一次工作流，或在 Actions 页点 "Re-run jobs"）。
+之后每次改前端都会自动更新。
+
 ### 数据存在哪（便携）
 
 ![数据位置](shots/19_data.png)
