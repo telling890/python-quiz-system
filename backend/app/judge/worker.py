@@ -240,6 +240,7 @@ def judge_question(code, question):
             "truncated": run["truncated"],
             "expect_lines": expect_lines,
             "actual_lines": actual_lines,
+            "duration_ms": run["duration_ms"],
             "status": "pass",
             "first_diff": None,
         }
