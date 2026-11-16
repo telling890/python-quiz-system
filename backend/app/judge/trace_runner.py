@@ -158,12 +158,16 @@ def main():
             if time.time() > deadline:
                 state["timeout"] = True
                 raise _Timeout()
+            line = frame.f_lineno
+            if line <= 0:
+                # Python 3.11+ 模块级 call 事件报 f_lineno = 0（没有对应源码行），跳过
+                return tracer
             out = buf.getvalue()
             if len(out) > MAX_OUTPUT:
                 out = out[:MAX_OUTPUT]
             variables, hidden = _snapshot(frame)
             steps.append({
-                "line": frame.f_lineno,
+                "line": line,
                 "event": event,
                 "func": frame.f_code.co_name,
                 "depth": _depth(frame),

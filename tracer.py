@@ -122,12 +122,17 @@ def trace_code(code, stdin_text="", timeout=TRACE_TIMEOUT, max_steps=MAX_STEPS):
                 if time.time() > deadline:
                     state["timeout"] = True
                     raise judge._Timeout()
+                line = frame.f_lineno
+                if line <= 0:
+                    # Python 3.11+ 在模块级 call 事件上报 f_lineno = 0（没有对应源码行），
+                    # 这种步骤在界面上没法高亮当前行，跳过；3.10 及更早这里是 1，行为不变。
+                    return tracer
                 out = buf.getvalue()
                 if len(out) > MAX_OUTPUT:
                     out = out[:MAX_OUTPUT]
                 variables, hidden = _snapshot(frame)
                 steps.append({
-                    "line": frame.f_lineno,
+                    "line": line,
                     "event": event,
                     "func": frame.f_code.co_name,
                     "depth": _depth(frame),

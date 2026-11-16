@@ -117,9 +117,12 @@ def _pyquiz_trace(code, stdin_text, timeout=5.0, max_steps=800):
         if time.time() > deadline:
             state["timeout"] = True
             raise _Timeout()
+        line = frame.f_lineno
+        if line <= 0:
+            return tracer
         variables, hidden = _snapshot(frame)
         steps.append({
-            "line": frame.f_lineno,
+            "line": line,
             "event": event,
             "func": frame.f_code.co_name,
             "depth": _depth(frame),
