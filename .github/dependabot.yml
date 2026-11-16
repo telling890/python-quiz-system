@@ -7,3 +7,10 @@ updates:
       interval: "monthly"
     commit-message:
       prefix: "ci"
+    ignore:
+      # 只提小版本/补丁。大版本（比如 checkout v4→v7、upload-artifact v4→v7）
+      # 这些 tag 往往并不存在，PR 一进来「打包验证」就是红的，纯噪音；
+      # 真要升大版本时手动改，顺便验证一遍 CI。
+      - dependency-name: "*"
+        update-types:
+          - "version-update:semver-major"
