@@ -167,6 +167,27 @@ export interface Snippet {
   updated: string;
 }
 
+/** 打卡热力图的单日数据 */
+export interface ActivityDay {
+  /** 本地日期 YYYY-MM-DD */
+  date: string;
+  count: number;
+}
+
+export interface Activity {
+  /** 按日期升序，最后一条是今天 */
+  days: ActivityDay[];
+  today: string;
+  today_count: number;
+  total: number;
+  active_days: number;
+  /** 当前连续打卡天数（今天没做但昨天做了，仍算活着） */
+  streak: number;
+  best_streak: number;
+  best_streak_end: string;
+  timezone_minutes: number;
+}
+
 export interface FreeDraft {
   code: string;
   stdin: string;

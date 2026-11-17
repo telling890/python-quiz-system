@@ -1,6 +1,7 @@
 /** 有后端时的 HTTP 实现（v1 接口 + 异步判题轮询） */
 import { ApiError, fireUnauthorized, isTerminal, tokenStore } from "./core";
 import type {
+  Activity,
   AuthPayload,
   Bank,
   FreeDraft,
@@ -108,6 +109,12 @@ export const httpApi = {
 
   progress() {
     return request<Progress>("/api/v1/progress");
+  },
+
+  activity(days = 182) {
+    // 时区偏移交给服务端：否则北京时间凌晨做的题会被算到前一天
+    const tz = -new Date().getTimezoneOffset();
+    return request<Activity>(`/api/v1/activity?days=${days}&tz=${tz}`);
   },
 
   setFavorite(qid: string, favorite: boolean) {

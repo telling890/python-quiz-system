@@ -1,6 +1,8 @@
 /** 静态版（GitHub Pages）的接口实现：题库内置、进度存浏览器、判题在浏览器里跑 Python */
 import { ApiError, BASE_URL, tokenStore } from "../core";
+import { buildActivity, dateKeyOf } from "../activity";
 import type {
+  Activity,
   Bank,
   CaseIn,
   Chapter,
@@ -17,7 +19,7 @@ import type {
 } from "../types";
 import { judgeLocal, runLocal, traceLocal } from "./judge";
 import { runner } from "./runner";
-import { loadState, newId, nowIso, saveState, withRecord, type LocalState } from "./store";
+import { bumpActivity, loadState, newId, nowIso, saveState, withRecord, type LocalState } from "./store";
 
 /* ------------------------------------------------------------------ 题库 */
 
@@ -191,6 +193,12 @@ export const staticApi = {
     return { qid, favorite };
   },
 
+  /* -------------------------------------------------- 打卡统计 */
+  async activity(days = 182): Promise<Activity> {
+    // 没有后端，热力图直接从本地「日期 → 次数」算
+    return buildActivity(loadState().activity, days);
+  },
+
   /* -------------------------------------------------- 判题（浏览器内执行） */
   async submit(input: { qid?: string; code: string; stdin?: string }): Promise<Submission> {
     const id = newId();
@@ -332,6 +340,7 @@ async function judgeSubmission(id: string): Promise<Submission> {
     },
     ...state.submissions,
   ].slice(0, 40);
+  state = bumpActivity(state, dateKeyOf(new Date()));
   saveState(state);
   pending.delete(id);
 

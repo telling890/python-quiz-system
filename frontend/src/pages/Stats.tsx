@@ -1,11 +1,21 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
-import { Activity, BarChart3, BookOpen, Download, PieChart, Target, TrendingUp } from "lucide-react";
+import {
+  Activity as ActivityIcon,
+  BarChart3,
+  BookOpen,
+  CalendarDays,
+  Download,
+  Flame,
+  PieChart,
+  Target,
+  TrendingUp,
+} from "lucide-react";
 import { api } from "../lib/api";
 import { useBank } from "../lib/bank";
-import type { ProgressRecord, Submission } from "../lib/types";
-import { BarRow, Donut, Legend, Trend } from "../components/Charts";
-import { Badge, Button, Card, CardHeader, Spinner } from "../components/ui";
+import type { Activity, ProgressRecord, Submission } from "../lib/types";
+import { BarRow, Donut, Heatmap, Legend, Trend } from "../components/Charts";
+import { Badge, Button, Card, CardHeader, ProgressBar, Segmented, Spinner } from "../components/ui";
 import { PageTitle } from "../components/Layout";
 import {
   chapterColor,
@@ -26,11 +36,38 @@ const COLOR = {
   aqua: "var(--color-aqua-400)",
 };
 
+/* ------------------------------------------------------------------ 每日目标 */
+
+const GOAL_KEY = "pyquiz.dailygoal.v1";
+const GOALS = [3, 5, 10];
+
+function readGoal(): number {
+  try {
+    const value = Number(localStorage.getItem(GOAL_KEY) || "5");
+    return GOALS.includes(value) ? value : 5;
+  } catch {
+    return 5;
+  }
+}
+
+function writeGoal(value: number) {
+  try {
+    localStorage.setItem(GOAL_KEY, String(value));
+  } catch {
+    /* 隐私模式忽略 */
+  }
+}
+
 export default function StatsPage() {
   const { questions, chapters, stats } = useBank();
   const [records, setRecords] = useState<ProgressRecord[]>([]);
   const [submissions, setSubmissions] = useState<Submission[]>([]);
   const [loading, setLoading] = useState(true);
+  const [activity, setActivity] = useState<Activity | null>(null);
+  const [activityError, setActivityError] = useState(false);
+  const [activityTick, setActivityTick] = useState(0);
+  const [range, setRange] = useState("26");
+  const [goal, setGoal] = useState(readGoal);
   const toast = useToast();
 
   useEffect(() => {
@@ -53,6 +90,32 @@ export default function StatsPage() {
   }, [toast]);
 
   const recordMap = useMemo(() => new Map(records.map((r) => [r.qid, r])), [records]);
+
+  // 热力图按窗口长度单独取：切换 26 周 / 52 周时统计数字跟着变，不会对不上
+  useEffect(() => {
+    let alive = true;
+    const days = Number(range) * 7;
+    setActivityError(false);
+    api
+      .activity(days)
+      .then((data) => {
+        if (alive) setActivity(data);
+      })
+      .catch(() => {
+        if (!alive) return;
+        setActivity(null);
+        setActivityError(true);
+      });
+    return () => {
+      alive = false;
+    };
+  }, [range, activityTick]);
+
+  const changeGoal = (next: string) => {
+    const value = Number(next);
+    setGoal(value);
+    writeGoal(value);
+  };
 
   const slices = useMemo(() => {
     const failed = questions.filter((q) => q.last === "fail").length;
@@ -92,7 +155,7 @@ export default function StatsPage() {
       .map(([level, g]) => ({ level, ...g, meta: levelMeta(level) }));
   }, [questions]);
 
-  const activity = useMemo(() => {
+  const weekActivity = useMemo(() => {
     const days: Array<{ label: string; value: number }> = [];
     const now = new Date();
     for (let i = 6; i >= 0; i -= 1) {
@@ -242,11 +305,105 @@ export default function StatsPage() {
         </Card>
       </div>
 
+      <Card className="mt-3">
+        <CardHeader
+          title="学习热力图"
+          subtitle={`最近 ${Number(range) * 7} 天 · 一格一天，颜色越深判题越多`}
+          icon={<CalendarDays size={16} />}
+          right={
+            <Segmented
+              value={range}
+              onChange={setRange}
+              options={[
+                { value: "26", label: "半年" },
+                { value: "52", label: "一年" },
+              ]}
+              size="sm"
+            />
+          }
+        />
+        <div className="px-4 pb-4 sm:px-5">
+          {activityError ? (
+            <div className="flex flex-col items-center gap-2 py-8 text-xs text-fg-dim">
+              <span>打卡数据没加载出来（后端可能是旧版本，或网络断了）</span>
+              <Button variant="ghost" size="sm" onClick={() => setActivityTick((n) => n + 1)}>
+                重试
+              </Button>
+            </div>
+          ) : activity ? (
+            <>
+              <div className="mb-3 grid grid-cols-2 gap-2 sm:grid-cols-4">
+                {[
+                  {
+                    label: "连续打卡",
+                    value: `${activity.streak} 天`,
+                    hint: activity.streak > 0 ? "今天别断" : "今天做一道就开张",
+                    icon: <Flame size={13} />,
+                  },
+                  {
+                    label: "最长连续",
+                    value: `${activity.best_streak} 天`,
+                    hint: activity.best_streak_end || "还没有记录",
+                  },
+                  {
+                    label: "活跃天数",
+                    value: `${activity.active_days} 天`,
+                    hint: `占 ${pct(activity.active_days, activity.days.length)}%`,
+                  },
+                  {
+                    label: "窗口内判题",
+                    value: `${activity.total} 次`,
+                    hint: `今天 ${activity.today_count} 次`,
+                  },
+                ].map((item) => (
+                  <div key={item.label} className="rounded-lg border border-line bg-ink-900/50 px-2.5 py-2">
+                    <p className="flex items-center gap-1 text-[0.64rem] text-fg-dim">
+                      {item.icon}
+                      {item.label}
+                    </p>
+                    <p className="text-sm font-semibold tabular-nums">{item.value}</p>
+                    <p className="truncate text-[0.6rem] text-fg-dim">{item.hint}</p>
+                  </div>
+                ))}
+              </div>
+
+              <Heatmap points={activity.days} />
+
+              <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1.5">
+                <span className="text-[0.66rem] text-fg-dim">今日目标</span>
+                <Segmented
+                  value={String(goal)}
+                  onChange={changeGoal}
+                  options={GOALS.map((value) => ({ value: String(value), label: `${value} 次` }))}
+                  size="sm"
+                />
+                <div className="min-w-[120px] max-w-[240px] flex-1">
+                  <ProgressBar
+                    value={activity.today_count}
+                    max={goal}
+                    tone={activity.today_count >= goal ? "ok" : "brand"}
+                    height={5}
+                  />
+                </div>
+                <span className="text-[0.66rem] tabular-nums text-fg-muted">
+                  今日 {activity.today_count} / {goal} 次
+                  {activity.today_count >= goal ? " · 达标 ✓" : ""}
+                </span>
+              </div>
+            </>
+          ) : (
+            <div className="flex justify-center py-8">
+              <Spinner />
+            </div>
+          )}
+        </div>
+      </Card>
+
       <div className="mt-3 grid gap-3 lg:grid-cols-2">
         <Card>
-          <CardHeader title="最近 7 天提交" subtitle="每天判了多少次" icon={<Activity size={16} />} />
+          <CardHeader title="最近 7 天提交" subtitle="每天判了多少次" icon={<ActivityIcon size={16} />} />
           <div className="px-4 pb-4 sm:px-5">
-            <Trend points={activity} color={COLOR.brand} formatValue={(v) => `${v} 次`} />
+            <Trend points={weekActivity} color={COLOR.brand} formatValue={(v) => `${v} 次`} />
           </div>
         </Card>
 
