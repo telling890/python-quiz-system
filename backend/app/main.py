@@ -30,7 +30,7 @@ from .errors import (ApiError, api_error_handler, error_response, http_error_han
                      unhandled_error_handler, validation_error_handler)
 from .judge.worker import get_service
 from .ratelimit import check
-from .routers import auth, bank, imports, legacy, snippets, submissions
+from .routers import activity, auth, bank, imports, legacy, snippets, submissions
 
 logger = logging.getLogger("quiz.api")
 
@@ -229,7 +229,7 @@ def create_app():
 
     # ------------------------------------------------------------ 路由
     for router in (auth.router, bank.router, submissions.router, snippets.router,
-                   imports.router):
+                   imports.router, activity.router):
         app.include_router(router, prefix="/api/v1")
     # 网页版旧接口 /api/*（web/index.html 用的那一套，已按用户隔离）
     app.include_router(legacy.router)
