@@ -10,7 +10,6 @@ import { IS_STATIC } from "./core";
 import { httpApi, httpAwaitSubmission } from "./httpApi";
 import { staticApi, staticAwaitSubmission } from "./static/apiStatic";
 import type {
-  Activity,
   AuthPayload,
   Bank,
   FreeDraft,
@@ -34,7 +33,6 @@ export interface QuizApi {
   bank(signal?: AbortSignal): Promise<Bank>;
   question(qid: string): Promise<Question>;
   progress(): Promise<Progress>;
-  activity(days?: number): Promise<Activity>;
   setFavorite(qid: string, favorite: boolean): Promise<{ qid: string; favorite: boolean }>;
   submit(input: { qid?: string; code: string; stdin?: string }): Promise<Submission>;
   submission(id: string): Promise<Submission>;
