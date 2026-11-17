@@ -2,8 +2,12 @@
 //
 // 两种产物：
 //   node scripts/build.mjs            → 有后端用（base=/app/，接口走 /api/v1）
-//   node scripts/build.mjs --static   → 静态版（GitHub Pages，base=/<仓库名>/，
+//   node scripts/build.mjs --static   → 静态版（GitHub Pages，base=/<仓库名>/app/，
 //                                       题库内置、进度存 localStorage、判题用 Pyodide）
+//
+// 为什么静态版是 /<仓库名>/app/ 而不是 /<仓库名>/：GitHub Pages 一个仓库只有一个站点根，
+// 站点根留给项目介绍页（site/），所以刷题应用整体挂在 /app/ 子路径下。
+// 组装脚本 scripts/assemble-site.mjs 用的是同一套推法，两边必须一致（CI 里有断言）。
 //
 // 为什么先改 TEMP：Windows 上 esbuild 会把自己的临时文件写到 %TEMP%，被杀软/索引器
 // 占用时删除会失败，报
@@ -34,6 +38,11 @@ function repoBase() {
   return `/${repo}/`;
 }
 
+function staticBase() {
+  // 站点根给介绍页，刷题应用固定在 app/ 子目录（与 assemble-site.mjs 的 APP_BASE 一致）
+  return `${repoBase()}app/`;
+}
+
 if (staticMode) {
   if (!existsSync(bankSource)) {
     console.error(`找不到题库：${bankSource}`);
@@ -56,7 +65,7 @@ const env = {
   TMP: tmp,
   TMPDIR: tmp,
   VITE_STATIC: staticMode ? "1" : "0",
-  VITE_BASE: process.env.VITE_BASE || (staticMode ? repoBase() : "/app/"),
+  VITE_BASE: process.env.VITE_BASE || (staticMode ? staticBase() : "/app/"),
 };
 
 console.log(`▶ 构建模式：${staticMode ? "静态版（GitHub Pages）" : "有后端（FastAPI /app）"}`);

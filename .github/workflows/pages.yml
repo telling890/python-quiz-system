@@ -1,6 +1,12 @@
 name: 发布网页版（gh-pages 分支）
 
-# 纯静态版：题库内置、进度存浏览器、判题用 Pyodide（WASM 里的 CPython）。
+# 站点结构（同一个仓库只有一个 Pages 站点，所以两块拼在一起）：
+#   /<仓库>/            项目介绍页（site/，纯静态，无构建步骤）
+#   /<仓库>/app/        刷题应用（frontend 静态版：题库内置、进度存浏览器、判题用 Pyodide）
+#   /<仓库>/404.html    应用外壳 + 守卫脚本：/app/ 下的深链接刷新仍进应用，其它 404 回介绍页
+#
+# base 与子路径不在这里指定：build.mjs 与 assemble-site.mjs 各自从 GITHUB_REPOSITORY
+# 推成 /<仓库>/app/（两处必须一致，下面的「检查产物」会断言）。
 # 构建产物推到 gh-pages 分支，GitHub Pages 直接读这个分支，不需要任何服务器，
 # 也不需要去设置里选 "GitHub Actions"（分支部署最简单、最不容易踩权限坑）。
 on:
@@ -8,6 +14,7 @@ on:
     branches: [main]
     paths:
       - "frontend/**"
+      - "site/**"
       - "backend/app/data/questions.json"
       - ".github/workflows/pages.yml"
   workflow_dispatch:
@@ -40,17 +47,28 @@ jobs:
       - name: 安装依赖
         run: npm ci --no-audit --no-fund
 
-      # base 由 scripts/build.mjs 从 GITHUB_REPOSITORY 推出来：/<仓库名>/
-      # 同时会把题库复制成 bank.json、并生成 404.html（前端路由回退）
+      # 题库复制成 bank.json、生成 404.html（前端路由回退）也在这一步里做；
+      # 静态版的 base 由 scripts/build.mjs 推成 /<仓库>/app/
       - name: 构建静态版
         run: npm run build:static
 
+      # 应用搬进 dist/app/，介绍页放到 dist 根，再生成站点级的 404.html
+      - name: 组装站点（介绍页 + 应用）
+        run: node scripts/assemble-site.mjs
+
       - name: 检查产物
         run: |
-          test -f dist/index.html
-          test -f dist/bank.json
+          test -f dist/index.html                      # 介绍页
+          test -f dist/assets/site.css
+          test -f dist/assets/site.js
+          test -f dist/assets/img/hero-workspace.webp
+          test -f dist/app/index.html                  # 刷题应用
+          test -f dist/app/bank.json
+          test -d dist/app/assets
           test -f dist/404.html
-          test -d dist/assets
+          grep -q "/app/assets/" dist/app/index.html   # 应用的资源路径在 /app/ 下
+          grep -q "appBase" dist/404.html              # 守卫脚本已注入
+          grep -q "app/" dist/404.html                 # 守卫里的 appBase 非空
           du -sh dist
 
       - name: 停用 Jekyll（下划线开头的文件会被它忽略）
@@ -66,5 +84,5 @@ jobs:
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git checkout -q -b gh-pages
           git add -A
-          git commit -q -m "deploy: 静态版网页（${GITHUB_SHA:0:7}）"
+          git commit -q -m "deploy: 介绍页 + 静态版网页（${GITHUB_SHA:0:7}）"
           git push -q --force "https://x-access-token:${TOKEN}@github.com/${GITHUB_REPOSITORY}.git" gh-pages

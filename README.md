@@ -14,17 +14,19 @@
 把教材《Python 程序设计实验指导与习题解答》第 3～5 章的实验题做成一个可以**边写边判**的桌面刷题程序：
 写完代码按 F5 就能跑，程序会用题目自带的测试用例逐条比对输出，通过的题自动记录，没通过的自动进错题本。
 
+> **项目主页**：<https://telling890.github.io/python-quiz-system/>（介绍页，功能 / 截图 / 上手方式都在这）
+> **在线刷题**：<https://telling890.github.io/python-quiz-system/app/>（纯前端静态版，打开即用，不用装任何东西）
 > **演示视频**：[docs/演示视频.mp4](docs/演示视频.mp4)（27 秒，1080p）
 > **直接下载**：[Release 附件](https://github.com/telling890/python-quiz-system/releases/latest/download/Python-quiz-system-portable.zip)（8.9 MB，解压后双击 `Python刷题系统.exe`，无需安装 Python）· [仓库内副本](downloads/Python-quiz-system-portable.zip)
 > **或者 clone 本仓库**：直接双击 `dist/Python刷题系统/Python刷题系统.exe` 就能运行（目录版已随仓库提供）
 > **在线看文档**：[项目汇报](docs/pdf/5-项目汇报.pdf) · [答辩 PPT](docs/pdf/4-答辩演示.pdf) · [需求](docs/pdf/1-需求说明书.pdf) · [设计](docs/pdf/2-设计文档.pdf) · [测试](docs/pdf/3-测试报告.pdf)
 
 - 可执行文件：`dist/Python刷题系统/Python刷题系统.exe`（免安装目录版，双击运行，约 21 MB）
-- 功能：顺序/随机刷题、判题、**执行过程单步追踪**、**自由编程**、错题本、收藏、统计（饼图 + 得分趋势）、模拟组卷（可按错题加权）、题目搜索、导出 CSV、导入自定义题库、**网页版（浏览器/手机共用同一份进度）**、**React 新前端（`/app`，接 `/api/v1`）**
+- 功能：顺序/随机刷题、判题、**执行过程单步追踪**、**自由编程**、错题本、收藏、统计（饼图 + 得分趋势 + **学习热力图/连续打卡**）、模拟组卷（错题加权、**考点覆盖**）、题目搜索、导出 CSV、导入自定义题库、**网页版（浏览器/手机共用同一份进度）**、**React 新前端（`/app`，接 `/api/v1`）**
 - 便携压缩包：`downloads/Python-quiz-system-portable.zip`（8.9 MB，拷贝/分发用这个）
 - 源码运行：`python main.py`；重新打包：`python build.py`
 - 题库：**139 道**（教材第3章 35 + 第4章 17 + 第5章 17，拓展练习 40，进阶算法 30），**338 个测试用例**
-- 自动测试：GitHub Actions 在每次推送时用 Python 3.8 / 3.11 跑题库自检与组卷自检
+- 自动测试：GitHub Actions 在每次推送时用 Python 3.8 / 3.11 跑题库质量守卫、题库自检与组卷自检
 
 ![功能巡览](shots/demo.gif)
 
@@ -154,20 +156,31 @@ py -3.10 -m pytest -q                                  # 67 个测试
 | 刷题 | `/app/practice/:qid` | 题目列表 + 题面 + 代码编辑器 + 判题/运行/单步追踪 |
 | 题本 | `/app/book` | 错题本 / 收藏夹 / 没通过，导出成绩 CSV |
 | 自由编程 | `/app/free` | stdin、草稿自动保存、代码片段增删 |
-| 统计 | `/app/stats` | 覆盖率环形图、章节与难度掌握度、7 天趋势、提交结果分布 |
-| 模拟组卷 | `/app/exam` | 错题加权/随机/顺序/只考没做过，限时，逐题判分，交卷报告 |
+| 统计 | `/app/stats` | 覆盖率环形图、章节与难度掌握度、**学习热力图 + 连续打卡 + 每日目标**、7 天趋势、提交结果分布 |
+| 模拟组卷 | `/app/exam` | 错题加权 / **考点覆盖** / 随机 / 顺序 / 只考没做过，限时，逐题判分，交卷报告 + 考点分布 |
 
 ![新前端 · 刷题](shots/frontend/04-practice-judge.png)
 
 - **判题结果逐用例展开**：期望/实际并排，首个不一致的行标红，报错原文直接摊开
 - **单步追踪播放器**：源码高亮当前行，左侧变量快照 + 累计输出，`←/→` 切步、空格播放、0.5×–5× 变速
 - **异步判题**：提交后按 800ms→1.6s 退避轮询（后端限流是每进程 120 次/分钟）
+- **学习热力图**：一格一天，半年/一年切换；连续打卡（今天没做但昨天做了不算断）、最长连续、活跃天数、
+  每日目标（3/5/10 次，选完存本地）。有后端时由 `/api/v1/activity` 按**客户端时区**聚合，
+  静态版在浏览器里算，两边规则一致
+- **考点覆盖组卷**：题库里 135 个复合考点（如「双重循环 / 递减」）被归成 **14 个考点家族**
+  （循环与遍历、字符串、字典与映射…），组卷时每个家族先各给一题、薄弱的先抽，
+  题量有限也不会连着抽到五六道同类题
+- **交卷报告带考点分布**：每个考点给出「本卷 x/y · 全库 x/y」，标出薄弱项，
+  点「去练这个考点」直接跳到刷题页并按关键词过滤（`?q=` 记在 URL 里，刷新不丢）
 - **刷新不丢**：组卷进度存 `localStorage`，回来接着做；编辑器内容按题号保留
 - **外观跟随系统**：默认跟系统的浅色/深色（`prefers-color-scheme`），侧栏底部可手动固定
   「跟随系统 / 浅色 / 深色」，选择会记住；代码编辑器、图表、弹窗遮罩一起换，切换不闪白
 
 ![浅色模式](shots/frontend/53-live-light-dashboard.png)
 - **移动端**：侧栏变抽屉 + 底部导航，手机竖屏也能刷
+
+![新前端 · 学习热力图](shots/frontend/70-stats-heatmap.png)
+![新前端 · 考点分布](shots/frontend/74-exam-coverage-report.png)
 
 ![新前端 · 单步追踪](shots/frontend/11-trace.png)
 
@@ -200,8 +213,14 @@ cd backend && docker compose build && docker compose up -d   # 打开 https://�
 
 ### 纯静态版（GitHub Pages，点开链接就能用，不需要服务器）
 
-同一份前端还能打成**完全静态**的版本，直接挂 GitHub Pages：没有后端也能用，
-打开 https://telling890.github.io/python-quiz-system/ 就能刷题。
+同一份前端还能打成**完全静态**的版本，直接挂 GitHub Pages：没有后端也能用。
+
+整个站点分两块（一个仓库只有一个 Pages 站点，所以拼在一起）：
+
+| 地址 | 内容 |
+|---|---|
+| <https://telling890.github.io/python-quiz-system/> | **项目介绍页**（`site/`，手写 HTML/CSS/JS，无构建步骤） |
+| <https://telling890.github.io/python-quiz-system/app/> | **刷题应用**（`frontend/` 静态版，打开就能刷） |
 
 工作原理（和上面的 `/app` 版是同一套页面代码）：
 
@@ -209,6 +228,7 @@ cd backend && docker compose build && docker compose up -d   # 打开 https://�
 |---|---|
 | 题库 | 构建时把 `backend/app/data/questions.json` 复制成 `bank.json` 一起发布（139 题 / 338 用例都带着） |
 | 进度、收藏、错题本、草稿、片段 | 存在浏览器的 `localStorage`（不跨设备，清缓存会没） |
+| 打卡热力图 | 本地记「日期 → 判题次数」（`state.activity`），热力图与连续天数在浏览器里算；老数据首次加载会从提交历史自动补 |
 | 判题 | **Pyodide**：在浏览器里跑真正的 CPython（WebAssembly），输出比对规则与后端逐字一致 |
 | 单步执行 | 同样是 Pyodide，用 `sys.settrace` 在浏览器里逐行记录变量（800 步 / 5 秒上限） |
 | 账号 | 不注册，起个昵称就开始（进度只在本机） |
@@ -223,14 +243,22 @@ cd backend && docker compose build && docker compose up -d   # 打开 https://�
 
 ```powershell
 cd quiz_app\frontend
-npm run build:static                     # 产物 frontend/dist（含 bank.json 和 404.html）
-npx vite preview --outDir dist           # 或任意静态服务器打开 dist
+npm run build:static                     # 静态版：base 自动取 /app/（CI 里是 /<仓库>/app/）
+node scripts/assemble-site.mjs           # 应用搬进 dist/app/，介绍页放到 dist 根
+npx vite preview --outDir dist           # 或任意静态服务器打开 dist：
+                                         #   http://127.0.0.1:4173/     介绍页
+                                         #   http://127.0.0.1:4173/app/ 刷题
 ```
 
-部署：仓库已经带好工作流 `.github/workflows/pages.yml` —— 推到 `main` 就会自动构建静态版并
-**推送到 `gh-pages` 分支**，GitHub Pages 直接读这个分支，不需要任何服务器、也不用在设置里折腾权限。
+部署：仓库已经带好工作流 `.github/workflows/pages.yml` —— 推到 `main`（改到 `site/` 或 `frontend/` 都算）
+就会自动构建静态版、组装站点，并**推送到 `gh-pages` 分支**，GitHub Pages 直接读这个分支，
+不需要任何服务器、也不用在设置里折腾权限。
 
-> **当前线上地址：<https://telling890.github.io/python-quiz-system/>**（已启用，打开即用）
+> **当前线上地址：<https://telling890.github.io/python-quiz-system/>**（介绍页）
+> **刷题应用：<https://telling890.github.io/python-quiz-system/app/>**
+>
+> 站点根 `404.html` 是应用外壳加一段守卫脚本：`/app/...` 下的深链接刷新仍然进应用，
+> 其它 404（包括搬目录之前的旧地址）会送回介绍页。
 >
 > 换仓库/换账号时只需要做一次：`Settings → Pages → Build and deployment → Source`
 > 选 **Deploy from a branch**，分支选 `gh-pages`、目录 `/ (root)`，保存后等 1 分钟。
@@ -335,7 +363,9 @@ npx vite preview --outDir dist           # 或任意静态服务器打开 dist
 
 ```
 quiz_app/
-├─ .github/workflows/selftest.yml   CI：推送时自动跑题库与组卷自检
+├─ .github/workflows/selftest.yml   CI：推送时自动跑题库质量守卫、题库与组卷自检
+├─ .github/workflows/pages.yml      发布 GitHub Pages：介绍页 + 静态版刷题应用
+├─ site/                      项目介绍页（纯静态：index.html + assets/，无构建步骤）
 ├─ downloads/
 │  └─ Python-quiz-system-portable.zip  ← 便携版安装包（8.9 MB，仓库内直接下载）
 ├─ docs/
@@ -347,6 +377,7 @@ quiz_app/
 ├─ web/
 │  └─ index.html             网页版前端（单文件：题库刷题 + 自由编程 + 执行过程）
 ├─ frontend/                 React 新前端（Vite + TS + Tailwind，由后端挂在 /app，见 frontend/README.md）
+│  └─ scripts/assemble-site.mjs  ← Pages 组装脚本：应用放 /app/、介绍页放站点根
 ├─ backend/                  多用户后端（FastAPI + SQLAlchemy，见 backend/README.md）
 ├─ main.py                   程序入口（DPI 适配、异常兜底）
 ├─ ui.py                     主页 / 刷题 / 统计 / 组卷 / 交卷报告 五个页面
@@ -365,6 +396,7 @@ quiz_app/
 ├─ bank_extra.py / bank_algo.py              拓展练习 / 进阶算法题库
 ├─ store.py                  进度持久化（收藏 / 错题 / 代码 / 考试历史 / 草稿 / 片段）
 ├─ selftest.py               题库自检：跑一遍所有参考答案
+├─ _test_bank.py             题库质量守卫：题号/字段/用例/难度/章节/参考答案（CI 第一道关）
 ├─ build.py                  一键打包（自检 → 生成图标 → PyInstaller，含 web/ 资源）
 ├─ _test_exam.py             组卷系统自检（12 项）
 ├─ _test_trace.py            执行过程追踪自检（12 项）

@@ -1,0 +1,561 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Python 程序设计刷题系统 · 边写边判的刷题工具</title>
+<meta name="description" content="把教材《Python 程序设计实验指导与习题解答》第 3～5 章的实验题做成边写边判的刷题系统：139 道题 / 338 个用例，F5 逐条比对输出，单步执行回放每一行的变量，错题本、热力图、模拟组卷，桌面版、浏览器、手机共用一套题。" />
+<meta name="theme-color" content="#06070d" />
+<meta property="og:type" content="website" />
+<meta property="og:title" content="Python 程序设计刷题系统 · 边写边判" />
+<meta property="og:description" content="139 道题 / 338 个用例 · 单步执行追踪 · 错题本与热力图 · 模拟组卷 · 浏览器里跑真 Python" />
+<meta property="og:image" content="https://telling890.github.io/python-quiz-system/assets/img/hero-workspace.webp" />
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='9' fill='%237c5cff'/%3E%3Cpath d='M11 9h7a4 4 0 0 1 0 8h-7z' fill='%23fff'/%3E%3Cpath d='M11 15h8a4 4 0 0 1 0 8h-8z' fill='%23fff' opacity='.62'/%3E%3C/svg%3E" />
+<link rel="stylesheet" href="assets/site.css" />
+</head>
+<body>
+
+<div class="progress" aria-hidden="true"><span id="progress-bar"></span></div>
+
+<header class="nav" id="nav">
+  <div class="nav-inner">
+    <a class="brand" href="#top" aria-label="回到顶部">
+      <span class="brand-mark" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+          <path d="M8 5h6a3.5 3.5 0 0 1 0 7H8V5Z" fill="currentColor"/>
+          <path d="M8 11h6.5a3.5 3.5 0 0 1 0 7H8v-7Z" fill="currentColor" opacity=".6"/>
+        </svg>
+      </span>
+      <span class="brand-text">
+        <strong>Python 刷题系统</strong>
+        <small>边写边判 · 第 3～5 章</small>
+      </span>
+    </a>
+
+    <nav class="nav-links" aria-label="页面导航">
+      <a href="#features">功能</a>
+      <a href="#gallery">界面</a>
+      <a href="#bank">题库</a>
+      <a href="#start">上手</a>
+      <a href="#tech">实现</a>
+      <a href="#docs">文档</a>
+    </nav>
+
+    <div class="nav-cta">
+      <a class="btn btn-ghost btn-sm" href="https://github.com/telling890/python-quiz-system" target="_blank" rel="noopener">
+        <svg viewBox="0 0 16 16" aria-hidden="true" class="icon"><path fill="currentColor" d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82a7.4 7.4 0 0 1 2-.27c.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8Z"/></svg>
+        GitHub
+      </a>
+      <a class="btn btn-primary btn-sm" href="./app/">在线刷题</a>
+    </div>
+  </div>
+</header>
+
+<main id="top">
+
+  <!-- ---------------------------------------------------------------- 首屏 -->
+  <section class="hero">
+    <div class="hero-glow" aria-hidden="true"></div>
+    <div class="wrap hero-stack">
+      <div class="hero-copy">
+        <p class="eyebrow"><span class="dot"></span>教材实验题 · 第 3～5 章 · MIT 开源</p>
+        <h1>
+          写完代码按 <kbd>F5</kbd><br />
+          逐条告诉你<span class="grad">差在哪一行</span>
+        </h1>
+        <p class="lead">
+          把《Python 程序设计实验指导与习题解答》第 3～5 章的实验题做成一套可以<b>边写边判</b>的刷题系统：
+          用题目自带的测试用例逐条比输出，通过的自动记分，没通过的进错题本；
+          卡住时还能把代码<b>逐行回放</b>，看清循环跑到第几轮、变量变成了什么。
+        </p>
+
+        <div class="hero-actions">
+          <a class="btn btn-primary btn-lg" href="./app/">
+            在线刷题（免安装）
+            <svg viewBox="0 0 20 20" aria-hidden="true" class="icon"><path fill="currentColor" d="M7.3 4.3a1 1 0 0 1 1.4 0l5 5a1 1 0 0 1 0 1.4l-5 5a1 1 0 1 1-1.4-1.4L11.58 10 7.3 5.7a1 1 0 0 1 0-1.4Z"/></svg>
+          </a>
+          <a class="btn btn-soft btn-lg" href="https://github.com/telling890/python-quiz-system/releases/latest/download/Python-quiz-system-portable.zip" target="_blank" rel="noopener">
+            <svg viewBox="0 0 20 20" aria-hidden="true" class="icon"><path fill="currentColor" d="M10 3a1 1 0 0 1 1 1v7.6l2.3-2.3a1 1 0 1 1 1.4 1.4l-4 4a1 1 0 0 1-1.4 0l-4-4a1 1 0 1 1 1.4-1.4L9 11.6V4a1 1 0 0 1 1-1Zm-6 12a1 1 0 0 1 1 1v1h10v-1a1 1 0 1 1 2 0v1.5a1.5 1.5 0 0 1-1.5 1.5h-11A1.5 1.5 0 0 1 3 17.5V16a1 1 0 0 1 1-1Z"/></svg>
+            下载 Windows 便携版 <em>8.9 MB</em>
+          </a>
+        </div>
+
+        <dl class="hero-stats">
+          <div><dt>139</dt><dd>道实验题</dd></div>
+          <div><dt>338</dt><dd>个测试用例</dd></div>
+          <div><dt>5</dt><dd>个章节</dd></div>
+          <div><dt>3</dt><dd>种打开方式</dd></div>
+        </dl>
+
+        <p class="hero-note">
+          在线版没有后端：题库内置在页面里，判题用 <b>Pyodide</b> 在浏览器里跑真正的 CPython，
+          首次判题需要下载约 10 MB 运行时；桌面版用 tkinter 写的，免安装、不联网也能用。
+        </p>
+      </div>
+
+      <div class="hero-visual">
+        <div class="frame frame-hero">
+          <div class="frame-bar">
+            <span class="dots" aria-hidden="true"><i></i><i></i><i></i></span>
+            <span class="url">telling890.github.io/python-quiz-system/app/</span>
+            <span class="frame-tag">静态版 · 无后端</span>
+          </div>
+          <img src="assets/img/hero-workspace.webp" width="1440" height="900" alt="刷题工作台：左侧题目列表、中间题面与测试用例、右侧代码编辑器和逐用例判题结果" />
+        </div>
+
+        <div class="float-card float-a">
+          <span class="float-dot ok"></span>
+          <b>3 / 3 用例通过</b>
+          <small>期望与实际逐行比对</small>
+        </div>
+        <div class="float-card float-b">
+          <span class="float-dot trace"></span>
+          <b>单步执行 · 第 12 / 47 步</b>
+          <small>i = 3，已输出 2 行</small>
+        </div>
+      </div>
+
+      <ul class="stack-strip" aria-label="技术栈">
+        <li>React 18</li>
+        <li>TypeScript</li>
+        <li>Vite</li>
+        <li>Tailwind CSS 4</li>
+        <li>FastAPI</li>
+        <li>Pyodide / WASM</li>
+        <li>tkinter 桌面端</li>
+        <li>PyInstaller</li>
+        <li>GitHub Actions</li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- ---------------------------------------------------------------- 出发点 -->
+  <section class="section" id="why">
+    <div class="wrap">
+      <div class="quote-card reveal">
+        <p class="eyebrow"><span class="dot"></span>为什么做这个</p>
+        <blockquote>
+          判题只会说「输出不对」，但初学者真正卡住的是「<b>为什么不对</b>」。
+        </blockquote>
+        <p class="quote-sub">
+          于是这套系统的目标不是多给几道题，而是把「哪一行、第几轮、变量是多少」直接摊在屏幕上：
+          判题结果逐用例展开、首个不一致的行标出来；单步执行把整段代码走过一遍再回放。
+          题库按教材章节组织，参考答案里连教材示范代码本身的问题也一并写清。
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ---------------------------------------------------------------- 功能 -->
+  <section class="section" id="features">
+    <div class="wrap">
+      <header class="section-head reveal">
+        <p class="eyebrow"><span class="dot"></span>核心能力</p>
+        <h2>把「写 → 判 → 看懂 → 复习」串成一条线</h2>
+        <p class="section-lead">桌面版、浏览器版、手机浏览器共用同一套题库与判题规则，进度各自保存在本地。</p>
+      </header>
+
+      <div class="cards">
+        <article class="card reveal">
+          <span class="card-icon ic-violet" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none"><path d="M9 6 4 12l5 6M15 6l5 6-5 6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </span>
+          <h3>边写边判</h3>
+          <p>按 <kbd>F5</kbd> 用题目自带用例逐条跑：期望输出、实际输出、首个不一致的行一起给出；6 秒超时看门狗，死循环不会卡住界面。</p>
+          <ul class="tags"><li>逐用例展开</li><li>6s 超时</li><li>报错分类提示</li></ul>
+        </article>
+
+        <article class="card reveal">
+          <span class="card-icon ic-cyan" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none"><path d="M4 7h10M4 12h16M4 17h7" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><circle cx="18" cy="7" r="2.2" stroke="currentColor" stroke-width="1.8"/></svg>
+          </span>
+          <h3>单步执行追踪</h3>
+          <p>用 <code>sys.settrace</code> 把代码逐行走一遍并录下来：当前行高亮、变量快照随步更新、已输出内容同步累积，可拖动时间轴回放。</p>
+          <ul class="tags"><li>最多 800 步</li><li>变量快照</li><li>0.5×–5× 变速</li></ul>
+        </article>
+
+        <article class="card reveal">
+          <span class="card-icon ic-green" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none"><path d="M4 5.5A1.5 1.5 0 0 1 5.5 4H10l2 2.5h6.5A1.5 1.5 0 0 1 20 8v10.5A1.5 1.5 0 0 1 18.5 20h-13A1.5 1.5 0 0 1 4 18.5v-13Z" stroke="currentColor" stroke-width="1.7"/><path d="M8 13.5l2.2 2.2L15 10.5" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </span>
+          <h3>错题本与收藏</h3>
+          <p>没通过的题自动进错题本，通过后自动移出；题目可单独收藏。题本支持一键跳题、重新提交，并能导出成绩 CSV。</p>
+          <ul class="tags"><li>自动收集</li><li>通过即移出</li><li>CSV 导出</li></ul>
+        </article>
+
+        <article class="card reveal">
+          <span class="card-icon ic-amber" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none"><path d="M5 19V9m7 10V5m7 14v-7" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+          </span>
+          <h3>学习统计</h3>
+          <p>覆盖率环形图、章节与难度掌握度、7 天提交趋势、提交结果分布，加一张近半年的<b>学习热力图</b>：连续打卡、活跃天数一眼看到。</p>
+          <ul class="tags"><li>热力图</li><li>薄弱考点</li><li>7 天趋势</li></ul>
+        </article>
+
+        <article class="card reveal">
+          <span class="card-icon ic-rose" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="8" stroke="currentColor" stroke-width="1.8"/><path d="M12 8v4.2l2.8 1.8" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"/></svg>
+          </span>
+          <h3>模拟组卷</h3>
+          <p>选题量、章节、难度和限时即可开考：错题加权 / 随机 / 顺序 / 只考没做过的四种策略，交卷出得分、逐题明细与<b>考点分布</b>。</p>
+          <ul class="tags"><li>错题加权</li><li>倒计时</li><li>考点分布</li></ul>
+        </article>
+
+        <article class="card reveal">
+          <span class="card-icon ic-indigo" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none"><path d="M8 4h9l3 3v13H8V4Z" stroke="currentColor" stroke-width="1.7"/><path d="M4 8v12h9" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg>
+          </span>
+          <h3>自由编程</h3>
+          <p>题库刷完了还能随手写：没有题目和用例，草稿自动保存，可以给常用代码起名存成片段，运行与单步执行和刷题页是同一套。</p>
+          <ul class="tags"><li>草稿自动保存</li><li>代码片段</li><li>导出 .py</li></ul>
+        </article>
+      </div>
+
+      <p class="cards-foot reveal">
+        另外还有：关键词搜索（<kbd>Ctrl</kbd>+<kbd>F</kbd>，按题号 / 标题 / 考点 / 题干搜题）、导入自定义 JSON 题库（导入时先用参考答案跑一遍用例，对不上会告诉你是哪几题）、
+        视觉外观跟随系统的浅色 / 深色，以及手机上侧栏变抽屉、底部导航。
+      </p>
+    </div>
+  </section>
+
+  <!-- ---------------------------------------------------------------- 截图 -->
+  <section class="section section-alt" id="gallery">
+    <div class="wrap">
+      <header class="section-head reveal">
+        <p class="eyebrow"><span class="dot"></span>界面巡览</p>
+        <h2>点一下就能看到实际的样子</h2>
+        <p class="section-lead">下面是线上版的真实截图（点大图可放大，<kbd>←</kbd> <kbd>→</kbd> 切换）。</p>
+      </header>
+
+      <div class="gallery reveal" id="gallery-root">
+        <figure class="stage">
+          <button class="stage-zoom" id="stage-open" type="button" aria-label="放大查看当前截图">
+            <img id="stage-img" src="assets/img/dashboard.webp" width="1440" height="900" alt="概览页" />
+            <span class="zoom-hint">点击放大</span>
+          </button>
+          <figcaption>
+            <div>
+              <h3 id="stage-title">概览</h3>
+              <p id="stage-desc">四张统计卡、接着上次继续、章节进度与最近提交。</p>
+            </div>
+            <div class="stage-nav">
+              <button class="round" id="prev" type="button" aria-label="上一张">‹</button>
+              <span id="stage-count">1 / 10</span>
+              <button class="round" id="next" type="button" aria-label="下一张">›</button>
+            </div>
+          </figcaption>
+        </figure>
+
+        <div class="rail" id="rail" role="tablist" aria-label="截图列表"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ---------------------------------------------------------------- 题库 -->
+  <section class="section" id="bank">
+    <div class="wrap">
+      <header class="section-head reveal">
+        <p class="eyebrow"><span class="dot"></span>题库</p>
+        <h2>139 道题，338 个用例，每道都带解析</h2>
+        <p class="section-lead">每道题都有题目描述、方法提示、参考答案、测试用例和易错点解析。</p>
+      </header>
+
+      <div class="bank-grid reveal">
+        <table class="bank-table">
+          <thead>
+            <tr><th scope="col">章节</th><th scope="col">题数</th><th scope="col">用例</th><th scope="col">内容</th></tr>
+          </thead>
+          <tbody>
+            <tr><th scope="row">第 3 章 程序控制结构</th><td>35</td><td>78</td><td>分支、循环、图形输出、穷举、级数近似、登录流程</td></tr>
+            <tr><th scope="row">第 4 章 序列</th><td>17</td><td>30</td><td>列表 / 元组 / 字典 / 集合、切片、嵌套结构、队列模拟</td></tr>
+            <tr><th scope="row">第 5 章 字符串</th><td>17</td><td>54</td><td>回文、切片、字典计数、字符校验、同构字符串</td></tr>
+            <tr><th scope="row">拓展练习</th><td>40</td><td>89</td><td>提成计算、杨辉三角、约瑟夫环、凯撒密码、游程编码</td></tr>
+            <tr><th scope="row">进阶算法</th><td>30</td><td>87</td><td>冒泡 / 快排、二分查找、Kadane、LIS、背包、回溯</td></tr>
+          </tbody>
+          <tfoot>
+            <tr><th scope="row">合计</th><td>139</td><td>338</td><td>教材三章 + 拓展 + 入门算法</td></tr>
+          </tfoot>
+        </table>
+
+        <aside class="bank-side">
+          <div class="mini-card">
+            <h3>判题规则</h3>
+            <ul>
+              <li><b>归一化比对</b>：忽略行尾空格、连续空格与空行，字符与顺序必须一致</li>
+              <li><b>raw 模式</b>：金字塔、等腰三角形这类靠缩进排版的题，行首空格参与比较</li>
+              <li><b>input 自动喂数据</b>：不回显提示语，<code>input("name: ")</code> 里的提示不会混进输出</li>
+              <li><b>危险调用拦截</b>：<code>os.system</code>、<code>subprocess</code>、<code>shutil.rmtree</code>、<code>ctypes</code> 等被禁</li>
+            </ul>
+          </div>
+          <div class="mini-card">
+            <h3>题目从哪来</h3>
+            <p>第 3～5 章取自教材《Python 程序设计实验指导与习题解答》；第 4 章把 36 个小操作按考点合并成 17 道可判题的完整题目。
+              拓展练习参考公开题集 <a href="https://github.com/RichardFu123/Python100Cases" target="_blank" rel="noopener">Python100Cases</a> 的题型，
+              题干重写、参考答案与用例自写；每题「参考答案」页顶部标注对应原题编号。</p>
+          </div>
+        </aside>
+      </div>
+    </div>
+  </section>
+
+  <!-- ---------------------------------------------------------------- 上手 -->
+  <section class="section section-alt" id="start">
+    <div class="wrap">
+      <header class="section-head reveal">
+        <p class="eyebrow"><span class="dot"></span>三种打开方式</p>
+        <h2>打开就能用，不用装 Python</h2>
+        <p class="section-lead">同一个题库、同一套判题规则，按你的场景选一种。</p>
+      </header>
+
+      <div class="ways">
+        <article class="way way-primary reveal">
+          <div class="way-head">
+            <span class="way-badge">最省事</span>
+            <h3>浏览器 / 手机</h3>
+          </div>
+          <p>没有后端：题库打在页面里，进度存 <code>localStorage</code>，判题在浏览器里跑真正的 CPython（Pyodide / WebAssembly）。</p>
+          <ul class="way-list">
+            <li>免安装、免注册，起个昵称就开始</li>
+            <li>手机与电脑同一个网址，竖屏也能刷</li>
+            <li>代价：首次判题约 10 MB 运行时；换浏览器进度不通用</li>
+          </ul>
+          <a class="btn btn-primary" href="./app/">打开在线版 →</a>
+        </article>
+
+        <article class="way reveal">
+          <div class="way-head">
+            <span class="way-badge ghost">离线可用</span>
+            <h3>Windows 桌面版</h3>
+          </div>
+          <p>PyInstaller <code>--onedir</code> 打包，解压后双击 <code>Python刷题系统.exe</code>，约 21 MB 的目录版，不写注册表、不解压临时文件。</p>
+          <ul class="way-list">
+            <li>进度存在程序旁边的 <code>data\state.json</code>，拷到 U 盘一起带走</li>
+            <li>还能「启动网页版」：本机起服务，同一 Wi-Fi 的手机也能刷</li>
+            <li>首次运行若被 Windows 拦，点「更多信息 → 仍要运行」</li>
+          </ul>
+          <a class="btn btn-soft" href="https://github.com/telling890/python-quiz-system/releases/latest" target="_blank" rel="noopener">去 Releases 下载 →</a>
+        </article>
+
+        <article class="way reveal">
+          <div class="way-head">
+            <span class="way-badge ghost">给一个班用</span>
+            <h3>多用户后端</h3>
+          </div>
+          <p>仓库里另有一份独立的 FastAPI 服务：账号注册 / 登录（PBKDF2 + JWT），每人独立的进度、收藏与代码片段，判题在独立子进程里跑。</p>
+          <ul class="way-list">
+            <li>提交异步化：拿 id 轮询结果，限流防刷</li>
+            <li>自带 <code>/docs</code> 交互文档、<code>/healthz</code> 健康检查</li>
+            <li><code>docker compose up</code> 一条命令部署</li>
+          </ul>
+          <pre class="code" data-copy><code>cd quiz_app/backend
+docker compose up -d</code><button class="copy" type="button">复制</button></pre>
+        </article>
+      </div>
+
+      <div class="run-block reveal">
+        <div class="run-copy">
+          <h3>从源码跑起来</h3>
+          <p>桌面版只要 Python 3.8+ 与标准库（界面就是 tkinter）；网页前端需要 Node 20 / 22。仓库根目录的 <code>启动网页版.bat</code> 会把「构建前端 → 起服务 → 开浏览器」一次做完。</p>
+        </div>
+        <pre class="code" data-copy><code>git clone https://github.com/telling890/python-quiz-system.git
+cd python-quiz-system
+
+python main.py                 # 桌面版（纯标准库 + tkinter）
+python selftest.py             # 题库自检：139 题 / 338 用例
+
+cd frontend
+npm install
+npm run build:static           # 静态版产物 frontend/dist</code><button class="copy" type="button">复制</button></pre>
+      </div>
+    </div>
+  </section>
+
+  <!-- ---------------------------------------------------------------- 实现 -->
+  <section class="section" id="tech">
+    <div class="wrap">
+      <header class="section-head reveal">
+        <p class="eyebrow"><span class="dot"></span>怎么实现的</p>
+        <h2>判题、追踪、静态化，各有一套</h2>
+        <p class="section-lead">判题引擎与单步追踪在桌面版是纯 Python，在浏览器版是同一套逻辑跑在 WASM 里。</p>
+      </header>
+
+      <ol class="flow reveal">
+        <li>
+          <span class="flow-no">01</span>
+          <h3>提交代码</h3>
+          <p>编辑器内容与题号一起发出；静态版直接在前端排队，桌面版交给本地服务或后端接口。</p>
+        </li>
+        <li>
+          <span class="flow-no">02</span>
+          <h3>受限执行</h3>
+          <p>子进程 / Web Worker 里跑学生代码：<code>input()</code> 从用例取数据，<code>print</code> 被捕获，超时直接 kill。</p>
+        </li>
+        <li>
+          <span class="flow-no">03</span>
+          <h3>归一化比对</h3>
+          <p>忽略行尾空格、连续空格与空行；图形题保留行首空格。逐条给出期望、实际与首个不一致的行。</p>
+        </li>
+        <li>
+          <span class="flow-no">04</span>
+          <h3>记录与回放</h3>
+          <p>通过则记分、移出错题本；需要时用 <code>sys.settrace</code> 逐行重跑一遍，把变量与输出存成时间轴。</p>
+        </li>
+      </ol>
+
+      <div class="arch-grid reveal">
+        <div class="arch-col">
+          <h3>界面层</h3>
+          <ul>
+            <li><b>桌面版</b><span>tkinter 自绘控件，纯标准库</span></li>
+            <li><b>React 前端</b><span>React 18 + Vite + TS + Tailwind 4</span></li>
+            <li><b>单文件网页版</b><span>老页面，仍在 <code>/legacy</code></span></li>
+          </ul>
+        </div>
+        <div class="arch-arrow" aria-hidden="true">→</div>
+        <div class="arch-col">
+          <h3>接口层</h3>
+          <ul>
+            <li><b>本地服务</b><span>http.server + JSON 接口，与桌面共享进度</span></li>
+            <li><b>FastAPI</b><span><code>/api/v1</code>，JWT、限流、异步提交</span></li>
+            <li><b>静态版</b><span>无接口，题库打成 <code>bank.json</code></span></li>
+          </ul>
+        </div>
+        <div class="arch-arrow" aria-hidden="true">→</div>
+        <div class="arch-col">
+          <h3>执行层</h3>
+          <ul>
+            <li><b>判题引擎</b><span>归一化比对 + 错误分类 + 看门狗</span></li>
+            <li><b>追踪器</b><span>逐行记录行号 / 变量 / 输出</span></li>
+            <li><b>Pyodide</b><span>浏览器里的 CPython，死循环杀 Worker</span></li>
+          </ul>
+        </div>
+      </div>
+
+      <ul class="limits reveal">
+        <li><b>6 秒</b><span>单次运行超时，判「运行超时」而不是卡死</span></li>
+        <li><b>800 步</b><span>单步执行最多记录步数，超限明确提示循环太长</span></li>
+        <li><b>120 次/分</b><span>后端每进程限流，前端按 800ms→1.6s 退避轮询</span></li>
+        <li><b>3.8 / 3.11</b><span>CI 在两个 Python 版本上跑题库与组卷自检</span></li>
+      </ul>
+
+      <p class="ci reveal">
+        <a href="https://github.com/telling890/python-quiz-system/actions" target="_blank" rel="noopener">
+          <img src="https://github.com/telling890/python-quiz-system/actions/workflows/selftest.yml/badge.svg" alt="CI 状态" height="20" />
+        </a>
+        <span>推送即跑：题库自检（338 用例）、组卷自检、前端类型检查与构建，缺一个都不合并。</span>
+      </p>
+    </div>
+  </section>
+
+  <!-- ---------------------------------------------------------------- 文档 -->
+  <section class="section section-alt" id="docs">
+    <div class="wrap">
+      <header class="section-head reveal">
+        <p class="eyebrow"><span class="dot"></span>项目文档</p>
+        <h2>需求、设计、测试、答辩材料都在仓库里</h2>
+        <p class="section-lead">Word / PPT 原件附 PDF 导出版，GitHub 上可以直接在线预览。</p>
+      </header>
+
+      <div class="docs">
+        <a class="doc-card reveal" href="https://github.com/telling890/python-quiz-system/tree/main/docs/pdf" target="_blank" rel="noopener">
+          <span class="doc-kind">PDF</span>
+          <h3>需求 · 设计 · 测试 · 答辩 · 汇报</h3>
+          <p>15 条功能需求与追踪矩阵、分层架构与模块设计、自检与缺陷记录、21 页答辩 PPT。</p>
+          <span class="doc-more">打开 docs/pdf →</span>
+        </a>
+        <a class="doc-card reveal" href="https://github.com/telling890/python-quiz-system/blob/main/docs/%E6%BC%94%E7%A4%BA%E8%A7%86%E9%A2%91.mp4" target="_blank" rel="noopener">
+          <span class="doc-kind">MP4</span>
+          <h3>27 秒演示视频</h3>
+          <p>主页 → 刷题 → 判题反馈 → 单步执行 → 自由编程 → 统计 → 组卷 → 交卷报告。</p>
+          <span class="doc-more">播放视频 →</span>
+        </a>
+        <a class="doc-card reveal" href="https://github.com/telling890/python-quiz-system/blob/main/README.md" target="_blank" rel="noopener">
+          <span class="doc-kind">MD</span>
+          <h3>README 与更新日志</h3>
+          <p>完整功能说明、判题规则、目录结构、自定义题库格式、打包方法与常见问题。</p>
+          <span class="doc-more">读 README →</span>
+        </a>
+        <a class="doc-card reveal" href="https://github.com/telling890/python-quiz-system/blob/main/LICENSE" target="_blank" rel="noopener">
+          <span class="doc-kind">MIT</span>
+          <h3>开源许可</h3>
+          <p>自由使用、修改与分发，保留版权声明即可。题库解析与用例均为自行编写。</p>
+          <span class="doc-more">查看 LICENSE →</span>
+        </a>
+      </div>
+
+      <div class="faq reveal">
+        <h3>几个常被问到的问题</h3>
+        <details>
+          <summary>需要先装 Python 吗？</summary>
+          <p>不用。桌面版是打包好的 exe，解压双击就能跑；在线版在浏览器里跑 WASM 版 CPython。只有做二次开发或重新打包时才需要 Python 3.8+。</p>
+        </details>
+        <details>
+          <summary>进度存在哪里？换电脑会丢吗？</summary>
+          <p>桌面版默认存在程序旁边的 <code>data\state.json</code>，把整个文件夹拷走，进度、自定义题库和代码片段一起带走；在线版存在浏览器的 <code>localStorage</code>，同一浏览器同一站点长期有效，清站点数据会没。目录不可写时桌面版会自动退回 <code>%LOCALAPPDATA%</code>，并在统计页写明实际路径。</p>
+        </details>
+        <details>
+          <summary>网页版会不会执行危险代码？</summary>
+          <p>练习环境禁掉了 <code>os.system</code>、<code>subprocess</code>、<code>shutil.rmtree</code>、<code>ctypes</code> 等调用，单次运行 6 秒超时。桌面版的本地服务只监听 <code>127.0.0.1</code>，开放局域网时会启用随机口令且只接受同源 + <code>application/json</code> 的请求。</p>
+        </details>
+        <details>
+          <summary>能导入自己的题库吗？</summary>
+          <p>可以。导入一个 JSON 数组（或 <code>{"questions": [...]}</code>），每题最少要有 <code>title</code> / <code>desc</code> / <code>ref</code> / <code>cases</code>。导入时程序会先用参考答案跑一遍用例，对不上会告诉你是哪几题。模板见仓库 <code>docs/题库模板.json</code>。</p>
+        </details>
+      </div>
+    </div>
+  </section>
+
+  <!-- ---------------------------------------------------------------- 收尾 -->
+  <section class="cta-final">
+    <div class="wrap cta-inner reveal">
+      <div>
+        <h2>下一道题，从按 F5 开始</h2>
+        <p>139 道实验题已经就位，判题、追踪、错题本都在等你的第一行代码。</p>
+      </div>
+      <div class="cta-actions">
+        <a class="btn btn-primary btn-lg" href="./app/">现在在线刷题</a>
+        <a class="btn btn-ghost btn-lg" href="https://github.com/telling890/python-quiz-system" target="_blank" rel="noopener">给个 Star ↗</a>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer class="foot">
+  <div class="wrap foot-inner">
+    <div class="foot-brand">
+      <span class="brand-mark" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+          <path d="M8 5h6a3.5 3.5 0 0 1 0 7H8V5Z" fill="currentColor"/>
+          <path d="M8 11h6.5a3.5 3.5 0 0 1 0 7H8v-7Z" fill="currentColor" opacity=".6"/>
+        </svg>
+      </span>
+      <div>
+        <strong>Python 程序设计刷题系统</strong>
+        <p>教材第 3～5 章实验题 · 边写边判 · MIT License</p>
+      </div>
+    </div>
+    <nav class="foot-links" aria-label="页脚链接">
+      <a href="./app/">在线刷题</a>
+      <a href="https://github.com/telling890/python-quiz-system" target="_blank" rel="noopener">GitHub</a>
+      <a href="https://github.com/telling890/python-quiz-system/releases" target="_blank" rel="noopener">Releases</a>
+      <a href="https://github.com/telling890/python-quiz-system/blob/main/CHANGELOG.md" target="_blank" rel="noopener">更新日志</a>
+      <a href="mailto:zz12@foxmail.com">zz12@foxmail.com</a>
+    </nav>
+  </div>
+  <div class="wrap foot-note">
+    <span>© <span id="year">2025</span> telling890 · 题库解析与测试用例均自行编写，参考题集已在仓库致谢。</span>
+    <span>本站是纯静态页面，由 GitHub Actions 发布在 GitHub Pages 上。</span>
+  </div>
+</footer>
+
+<div class="lightbox" id="lightbox" role="dialog" aria-modal="true" aria-label="截图预览" hidden>
+  <button class="lb-close" id="lb-close" type="button" aria-label="关闭">✕</button>
+  <button class="lb-nav lb-prev" id="lb-prev" type="button" aria-label="上一张">‹</button>
+  <img id="lb-img" alt="" />
+  <button class="lb-nav lb-next" id="lb-next" type="button" aria-label="下一张">›</button>
+  <p class="lb-cap" id="lb-cap"></p>
+</div>
+
+<script src="assets/site.js" defer></script>
+</body>
+</html>
