@@ -10,6 +10,8 @@
 [![Python](https://img.shields.io/badge/python-3.8%2B-3776AB.svg)](https://www.python.org/)
 [![Platform](https://img.shields.io/badge/platform-Windows%2010%2F11-0078D4.svg)](#)
 [![Tests](https://img.shields.io/badge/selftest-139%20%E9%A2%98%20%C2%B7%20338%20%E7%94%A8%E4%BE%8B-brightgreen.svg)](selftest.py)
+[![项目主页](https://img.shields.io/badge/%E9%A1%B9%E7%9B%AE%E4%B8%BB%E9%A1%B5-telling890.github.io-7c5cff.svg)](https://telling890.github.io/python-quiz-system/)
+[![在线刷题](https://img.shields.io/badge/%E5%9C%A8%E7%BA%BF%E5%88%B7%E9%A2%98-%E6%89%93%E5%BC%80%E5%8D%B3%E7%94%A8-22d3ee.svg)](https://telling890.github.io/python-quiz-system/app/)
 
 把教材《Python 程序设计实验指导与习题解答》第 3～5 章的实验题做成一个可以**边写边判**的桌面刷题程序：
 写完代码按 F5 就能跑，程序会用题目自带的测试用例逐条比对输出，通过的题自动记录，没通过的自动进错题本。
