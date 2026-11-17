@@ -28,6 +28,9 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
 
+      - name: 题库质量守卫（结构 + 参考答案）
+        run: python _test_bank.py --refs
+
       - name: 题库自检（139 题 / 338 用例）
         run: python selftest.py
 
