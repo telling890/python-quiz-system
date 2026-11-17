@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head><script>/* 由 scripts/assemble-site.mjs 注入：只接住 /app/ 下的深链接，其它 404 回到介绍页 */(function(){var appBase="/python-quiz-system/app/";var siteBase="/python-quiz-system/";if(location.pathname.indexOf(appBase)!==0){location.replace(siteBase);}})();</script>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#0b1020" />
+    <link rel="icon" type="image/svg+xml" href="./favicon.svg" />
+    <meta name="description" content="Python 程序设计刷题系统 · 边写边判、错题本、执行追踪、模拟组卷" />
+    <title>Python 刷题系统</title>
+    <script>
+      // 首帧之前就把主题定下来，避免深色用户先看到白闪一下
+      (function () {
+        try {
+          var saved = localStorage.getItem("pyquiz.theme");
+          if (saved === "light" || saved === "dark") {
+            document.documentElement.setAttribute("data-theme", saved);
+            document
+              .querySelector('meta[name="theme-color"]')
+              ?.setAttribute("content", saved === "light" ? "#eef1f7" : "#0b1020");
+          }
+        } catch (e) {
+          /* 隐私模式下 localStorage 不可用，按系统走 */
+        }
+      })();
+    </script>
+    <script type="module" crossorigin src="/python-quiz-system/app/assets/index-DjF3JMP-.js"></script>
+    <link rel="stylesheet" crossorigin href="/python-quiz-system/app/assets/index-DSNzwra0.css">
+  </head>
+  <body>
+    <div id="root"></div>
+  </body>
+</html>
