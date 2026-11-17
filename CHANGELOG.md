@@ -14,6 +14,8 @@
   - `pages.yml` 增加 `site/**` 触发路径；静态版 base 由 `build.mjs` 与 `assemble-site.mjs` 各自从
     `GITHUB_REPOSITORY` 推成 `/<仓库>/app/`（CI 的「检查产物」会断言应用资源确实在 `/app/` 下）
   - 线上：<https://telling890.github.io/python-quiz-system/>（介绍页）· `/app/`（刷题）
+  - 双向入口：README 顶部加「项目主页 / 在线刷题」徽章和介绍页预览图；静态版应用侧栏底部加
+    「项目介绍 · 截图与说明 ↗」（`SITE_URL` 由 `BASE_URL` 去掉末尾 `app/` 得到，只在 `IS_STATIC` 时显示）
 - **题库质量守卫（`_test_bank.py`）**：`selftest.py` 只验证「参考答案能不能过用例」，
   但题库还会以别的方式坏掉，而且坏得很安静：题号重复（进度按 id 存，两条题会串记录）、
   `hint`/`explain` 写空、用例缺 `expect` 字段、难度越界、`chapter` 跟 `CHAPTERS` 对不上、

@@ -11,6 +11,12 @@ export const BASE_URL = import.meta.env.BASE_URL || "/";
 /** 前端路由 basename（去掉尾部斜杠，根路径时为空串） */
 export const BASENAME = BASE_URL.replace(/\/$/, "");
 
+/**
+ * 项目介绍页地址（站点根）。静态版挂在 /<仓库>/app/ 下，把末尾的 app/ 去掉就是介绍页；
+ * 有后端的版本没有介绍页，给空串，调用方自己判断 IS_STATIC。
+ */
+export const SITE_URL = IS_STATIC ? BASE_URL.replace(/app\/?$/, "") : "";
+
 /* ------------------------------------------------------------------ 错误 */
 
 export class ApiError extends Error {

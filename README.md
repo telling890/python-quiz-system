@@ -23,6 +23,12 @@
 > **或者 clone 本仓库**：直接双击 `dist/Python刷题系统/Python刷题系统.exe` 就能运行（目录版已随仓库提供）
 > **在线看文档**：[项目汇报](docs/pdf/5-项目汇报.pdf) · [答辩 PPT](docs/pdf/4-答辩演示.pdf) · [需求](docs/pdf/1-需求说明书.pdf) · [设计](docs/pdf/2-设计文档.pdf) · [测试](docs/pdf/3-测试报告.pdf)
 
+[![项目介绍页](shots/site-preview.webp)](https://telling890.github.io/python-quiz-system/)
+
+> 点图进**项目介绍页**：功能说明、10 张界面截图、三种打开方式、实现细节与文档都在那一页。
+> 介绍页右上角的「在线刷题」直接进网页版（<https://telling890.github.io/python-quiz-system/app/>），
+> 网页版侧栏底部也有「项目介绍」可以回到介绍页。
+
 - 可执行文件：`dist/Python刷题系统/Python刷题系统.exe`（免安装目录版，双击运行，约 21 MB）
 - 功能：顺序/随机刷题、判题、**执行过程单步追踪**、**自由编程**、错题本、收藏、统计（饼图 + 得分趋势 + **学习热力图/连续打卡**）、模拟组卷（错题加权、**考点覆盖**）、题目搜索、导出 CSV、导入自定义题库、**网页版（浏览器/手机共用同一份进度）**、**React 新前端（`/app`，接 `/api/v1`）**
 - 便携压缩包：`downloads/Python-quiz-system-portable.zip`（8.9 MB，拷贝/分发用这个）

@@ -15,7 +15,7 @@ import {
 } from "lucide-react";
 import { useAuth } from "../lib/auth";
 import { useBank } from "../lib/bank";
-import { IS_STATIC } from "../lib/api";
+import { IS_STATIC, SITE_URL } from "../lib/api";
 import { pct } from "../lib/format";
 import { ThemeCycleButton, ThemeSwitch } from "./ThemeSwitch";
 import { cls, ProgressBar, useToast } from "./ui";
@@ -107,9 +107,17 @@ export default function Layout() {
           {loading ? "加载中…" : error ? <span className="text-bad-400">{error}</span> : `覆盖率 ${solvedPct}% · 通过 ${stats.passes} 次`}
         </div>
         {IS_STATIC ? (
-          <div className="mt-1.5 rounded-md border border-line bg-ink-900/60 px-1.5 py-1 text-[0.6rem] leading-snug text-fg-dim">
-            静态版 · 进度存在本机浏览器
-          </div>
+          <>
+            <div className="mt-1.5 rounded-md border border-line bg-ink-900/60 px-1.5 py-1 text-[0.6rem] leading-snug text-fg-dim">
+              静态版 · 进度存在本机浏览器
+            </div>
+            <a
+              href={SITE_URL}
+              className="mt-1.5 flex items-center justify-center gap-1 rounded-md border border-line bg-ink-900/40 px-1.5 py-1 text-[0.6rem] leading-snug text-fg-dim transition-colors hover:border-brand-500/40 hover:text-brand-300"
+            >
+              项目介绍 · 截图与说明 ↗
+            </a>
+          </>
         ) : null}
       </div>
       <NavItems />

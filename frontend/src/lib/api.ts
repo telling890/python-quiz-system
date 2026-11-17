@@ -10,6 +10,7 @@ import { IS_STATIC } from "./core";
 import { httpApi, httpAwaitSubmission } from "./httpApi";
 import { staticApi, staticAwaitSubmission } from "./static/apiStatic";
 import type {
+  Activity,
   AuthPayload,
   Bank,
   FreeDraft,
@@ -23,7 +24,7 @@ import type {
 } from "./types";
 
 export { ApiError, tokenStore, onUnauthorized, isTerminal } from "./core";
-export { IS_STATIC, BASE_URL, BASENAME } from "./core";
+export { IS_STATIC, BASE_URL, BASENAME, SITE_URL } from "./core";
 
 /** 两个实现共同遵守的契约（页面只认它） */
 export interface QuizApi {
@@ -33,6 +34,7 @@ export interface QuizApi {
   bank(signal?: AbortSignal): Promise<Bank>;
   question(qid: string): Promise<Question>;
   progress(): Promise<Progress>;
+  activity(days?: number): Promise<Activity>;
   setFavorite(qid: string, favorite: boolean): Promise<{ qid: string; favorite: boolean }>;
   submit(input: { qid?: string; code: string; stdin?: string }): Promise<Submission>;
   submission(id: string): Promise<Submission>;
