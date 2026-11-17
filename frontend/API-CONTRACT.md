@@ -7,9 +7,9 @@
 > - **【代码可证】**：从源码逐行读出，未单独跑请求验证。
 > - **【代码中未体现，需实测】**：代码里查不到、依赖运行环境或未验证的，明确标注，不要当成契约用。
 >
-> 文档覆盖的前端可用端点共 **25 个**（按「方法 + 路径」唯一计）：
-> `/api/v1/*` **17 个** + 旧兼容层 `/api/*` **8 个**；
-> 另有 6 条非业务路由（`/`、`/auth.js`、`/healthz`、`/docs`、`/redoc`、`/openapi.json`），合计 31 条路由。
+> 文档覆盖的前端可用端点共 **26 个**（按「方法 + 路径」唯一计）：
+> `/api/v1/*` **18 个** + 旧兼容层 `/api/*` **8 个**；
+> 另有 6 条非业务路由（`/`、`/auth.js`、`/healthz`、`/docs`、`/redoc`、`/openapi.json`），合计 32 条路由。
 
 ---
 
@@ -19,7 +19,7 @@
 2. [端点总表](#2-端点总表)
 3. [认证 /api/v1/auth](#3-认证-apiv1auth)
 4. [题库 /api/v1/bank、/api/v1/questions](#4-题库)
-5. [进度 /api/v1/progress](#5-进度)
+5. [进度与打卡统计 /api/v1/progress、/api/v1/activity](#5-进度与打卡统计)
 6. [判题 /api/v1/submissions、/api/v1/run](#6-判题)
 7. [片段与草稿 /api/v1/snippets、/api/v1/free](#7-代码片段与自由编程草稿)
 8. [导入 /api/v1/import/state](#8-导入)
@@ -287,7 +287,7 @@ x-frame-options: DENY
 
 ## 2. 端点总表
 
-### 2.1 `/api/v1/*`（17 个）
+### 2.1 `/api/v1/*`（18 个）
 
 | # | 方法 | 路径 | 认证 | 成功码 | 说明 |
 |---|---|---|---|---|---|
@@ -308,29 +308,30 @@ x-frame-options: DENY
 | 15 | GET | `/api/v1/free` | 是 | 200 | 读自由编程草稿 |
 | 16 | PUT | `/api/v1/free` | 是 | 200 | 存自由编程草稿 |
 | 17 | POST | `/api/v1/import/state` | 是 | 200 | 导入桌面版 state.json |
+| 18 | GET | `/api/v1/activity?days=&tz=` | 是 | 200 | **打卡热力图**：按天聚合判题次数 + 连续天数 |
 
 ### 2.2 `/api/*`（旧兼容层，8 个）
 
 | # | 方法 | 路径 | 认证 | 成功码 | 说明 |
 |---|---|---|---|---|---|
-| 18 | GET | `/api/bank` | 是 | 200 | 同 #4，但**无 `data` 层** |
-| 19 | GET | `/api/free` | 是 | 200 | 读草稿 |
-| 20 | POST | `/api/free` | 是 | 200 | 存草稿 |
-| 21 | GET | `/api/snippets` | 是 | 200 | 片段列表 |
-| 22 | POST | `/api/snippet`（**单数**） | 是 | 200 | 存 / 删片段（`{delete:true}`） |
-| 23 | POST | `/api/run` | 是 | 200 | 带 `qid` 判题，不带则自由运行（**同步**） |
-| 24 | POST | `/api/trace` | 是 | 200 | **单步执行追踪（v1 没有对应端点）** |
-| 25 | POST | `/api/attempt` | 是 | 200 | 记一次作答（v1 由判题 worker 自动记，故无需此端点） |
+| 19 | GET | `/api/bank` | 是 | 200 | 同 #4，但**无 `data` 层** |
+| 20 | GET | `/api/free` | 是 | 200 | 读草稿 |
+| 21 | POST | `/api/free` | 是 | 200 | 存草稿 |
+| 22 | GET | `/api/snippets` | 是 | 200 | 片段列表 |
+| 23 | POST | `/api/snippet`（**单数**） | 是 | 200 | 存 / 删片段（`{delete:true}`） |
+| 24 | POST | `/api/run` | 是 | 200 | 带 `qid` 判题，不带则自由运行（**同步**） |
+| 25 | POST | `/api/trace` | 是 | 200 | **单步执行追踪（v1 没有对应端点）** |
+| 26 | POST | `/api/attempt` | 是 | 200 | 记一次作答（v1 由判题 worker 自动记，故无需此端点） |
 
 > 计数口径：按「方法 + 路径」唯一计。`/api/free` 的 GET/POST 算 2 个、`/api/v1/snippets` 的 GET/POST 算 2 个。
-> 合计 **17 + 8 = 25** 个业务端点。
+> 合计 **18 + 8 = 26** 个业务端点。
 
 ### 2.3 OpenAPI 里实际注册的路径（实测）
 
 ```
 /api/attempt   /api/bank   /api/free   /api/run   /api/snippet   /api/snippets   /api/trace
 /api/v1/auth/login   /api/v1/auth/me   /api/v1/auth/register
-/api/v1/bank   /api/v1/free   /api/v1/import/state   /api/v1/progress
+/api/v1/activity   /api/v1/bank   /api/v1/free   /api/v1/import/state   /api/v1/progress
 /api/v1/progress/{qid}/favorite   /api/v1/questions/{qid}   /api/v1/run
 /api/v1/snippets   /api/v1/snippets/{name}   /api/v1/submissions
 /api/v1/submissions/{submission_id}   /healthz
@@ -579,7 +580,7 @@ x-frame-options: DENY
 
 ---
 
-## 5. 进度
+## 5. 进度与打卡统计
 
 ### 5.1 `GET /api/v1/progress`
 
@@ -669,6 +670,74 @@ x-frame-options: DENY
 | 404 | `question_not_found` |
 | 401 | `unauthorized` |
 | 422 | `validation_error`（`favorite` 不是 bool） |
+
+### 5.3 `GET /api/v1/activity` —— 打卡热力图
+
+统计页的「学习热力图」用它。**需要认证。**
+
+为什么需要这个端点：`/submissions` 一次最多返回 100 条，拼不出半年的每日次数；
+热力图是在服务端按用户把提交记录按天聚合的。
+
+**Query 参数**
+
+| 参数 | 类型 | 默认 | 范围 | 说明 |
+|---|---|---|---|---|
+| `days` | int | `182` | 7–366 | 返回最近多少天（含今天） |
+| `tz` | int | `0` | -720–840 | **客户端时区偏移（分钟）**，东八区传 `480` |
+
+> 前端用 `tz = -new Date().getTimezoneOffset()` 现算。
+> 不带 `tz` 时按 UTC 切日：北京时间凌晨 1 点做的题会被算到前一天。
+
+**成功 `200`（实测，判过 1 道题的新账号，`days=7&tz=480`）**
+
+```json
+{
+  "ok": true,
+  "data": {
+    "days": [
+      { "date": "2026-11-10", "count": 0 },
+      { "date": "2026-11-11", "count": 0 },
+      { "date": "2026-11-12", "count": 0 },
+      { "date": "2026-11-13", "count": 0 },
+      { "date": "2026-11-14", "count": 0 },
+      { "date": "2026-11-15", "count": 0 },
+      { "date": "2026-11-16", "count": 1 }
+    ],
+    "today": "2026-11-16",
+    "today_count": 1,
+    "total": 1,
+    "active_days": 1,
+    "streak": 1,
+    "best_streak": 1,
+    "best_streak_end": "2026-11-16",
+    "timezone_minutes": 480
+  }
+}
+```
+
+**字段语义**
+
+| 字段 | 计算 | 易错点 |
+|---|---|---|
+| `days` | 窗口内**每天一条**，升序，最后一条是今天 | 没做题的日子 `count = 0` 也在里面，前端不用自己补洞 |
+| `today_count` | 今天这一格 | 与 `days[days.length-1].count` 相等 |
+| `total` | 窗口内判题次数合计 | 只算窗口，不是「历史总数」 |
+| `active_days` | `count > 0` 的天数 | |
+| `streak` | 当前连续打卡天数 | **今天没做、昨天做了时仍算「活着」**（从昨天往前数）；今天和昨天都没有才归零。窗口外的天数不计 |
+| `best_streak` / `best_streak_end` | 窗口内最长连续天数及其结束日 | 没有记录时是 `0` / `""` |
+| `timezone_minutes` | 原样回显 `tz` | 便于前端确认口径 |
+
+**计数口径**：一条 `Submission` 算一次，**不分通过/失败**（含 `qid` 为空的自由运行提交）。
+
+**失败**
+
+| 状态 | code |
+|---|---|
+| 401 | `unauthorized` |
+| 422 | `validation_error`（`days` 超范围、`tz` 超范围） |
+
+> 静态版（GitHub Pages）没有这个端点：`lib/static/apiStatic.ts` 用 `lib/activity.ts` 的
+> `buildActivity()` 在浏览器里按同一套规则（含「连续打卡」的判定）现算。
 
 ---
 
@@ -1784,7 +1853,7 @@ const msg = typeof e.error === "string" ? e.error
 | 每题耗时 | `result.duration_ms` 判题模式恒 0（缺陷） | 前端自己 `performance.now()` 计；或用 `/api/v1/run` 的 `run.duration_ms` |
 | 「上次提交的代码」 | `/progress` 无 `code`；`Submission` 也无 `code` | 读 `/bank` 的 `question.code`（最近一次判题代码） |
 | 判题历史回放 | 只保留最近 **100 条**/人，且**不含代码** | 无解；需要后端加字段（不建议） |
-| 学习曲线 / 提交时间线 | 可用 `GET /submissions?limit=100` 的 `created_at` 拼，但被裁剪到 100 条 | 需要更久历史就得后端加统计表 |
+| 学习曲线 / 提交时间线 | `GET /api/v1/activity?days=&tz=` 已按天聚合（最长 366 天）；逐条明细仍只有最近 100 条 | 热力图直接用 `/activity`；要逐条回放历史仍需后端加统计表 |
 | 弱项分析（按 topic） | 无聚合端点 | 前端用 `questions[].topic` + `records` 自己算 |
 | 改密码 / 找回密码 / 注销 | **无端点**（`auth.js` 文案：「忘记密码目前只能找管理员重置」） | 无解 |
 | 登出 | 无端点 | 清本地 token |

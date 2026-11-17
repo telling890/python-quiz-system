@@ -104,7 +104,7 @@ frontend/
 ├── index.html              # Vite 入口（base=/app/）
 ├── vite.config.ts          # 开发代理 + /app base + Tailwind 插件
 ├── public/favicon.svg
-├── API-CONTRACT.md         # 后端 25 个端点的完整契约（含真实响应样例）
+├── API-CONTRACT.md         # 后端 26 个端点的完整契约（含真实响应样例）
 └── src/
     ├── main.tsx            # BrowserRouter(basename=/app) + Auth/Toast Provider
     ├── App.tsx             # 路由表（业务页懒加载，编辑器单独拆包）
@@ -114,12 +114,14 @@ frontend/
     │   ├── auth.tsx        # 登录态（localStorage token + /auth/me 校验）
     │   ├── bank.tsx        # 题库与进度上下文（一次拉取，全站共享）
     │   ├── types.ts        # 与 schemas.py 对齐的类型
+    │   ├── activity.ts     # 打卡热力图：本地日期键 + 连续天数（静态版自己算）
+    │   ├── topics.ts       # 考点家族归类（组卷「考点覆盖」与考点报告的口径）
     │   └── format.ts       # 章节配色、时间、CSV 导出等
     ├── components/
     │   ├── Layout.tsx      # 侧栏 + 移动端抽屉/底部导航
     │   ├── ui.tsx          # Button/Card/Badge/Modal/Toast/Segmented…
     │   ├── CodeEditor.tsx  # CodeMirror 6（Python 高亮，Ctrl+Enter 判题）
-    │   ├── Charts.tsx      # 手写 SVG 环形图/趋势图/条形图
+    │   ├── Charts.tsx      # 手写 SVG 环形图/趋势图/条形图/打卡热力图
     │   ├── QuestionBody.tsx
     │   ├── JudgeResult.tsx # 逐用例比对、首行差异高亮
     │   └── TraceViewer.tsx # 单步执行播放器（变量/累计输出/源码高亮）
@@ -137,15 +139,18 @@ frontend/
 | `/app/practice/:qid` | 刷题工作台：题目列表（搜索/章节/状态筛选）+ 题面 + 编辑器 + 运行/判题/单步追踪 |
 | `/app/book` | 题本：错题本 / 收藏夹 / 没通过，一键跳回刷题；导出 CSV |
 | `/app/free` | 自由编程：stdin、运行、追踪、草稿自动保存、代码片段增删 |
-| `/app/stats` | 统计：覆盖率环形图、章节/难度掌握度、7 天提交趋势、提交结果分布、最需要复习的题 |
-| `/app/exam` | 模拟组卷：题数/章节/策略（错题加权·随机·顺序·只考没做过）/限时 → 逐题判分 → 交卷报告 |
+| `/app/stats` | 统计：覆盖率环形图、章节/难度掌握度、**学习热力图（连续打卡 + 每日目标）**、7 天提交趋势、提交结果分布、最需要复习的题 |
+| `/app/exam` | 模拟组卷：题数/章节/策略（错题加权·**考点覆盖**·随机·顺序·只考没做过）/限时 → 逐题判分 → 交卷报告（含考点分布） |
 
 交互细节：
 
 - **判题是异步的**：`POST /api/v1/submissions` 拿 id，前端按 800ms→1.6s 退避轮询（后端限流是每进程 120 次/分钟，不能狂刷）。
 - **Ctrl+Enter** 判题 / **Ctrl+S** 保存草稿（自由编程页）。
 - 单步追踪弹窗：← → 切步、空格播放暂停、0.5×–5× 速度，源码当前行高亮、局部变量与累计输出同步刷新。
-- 刷新不丢：编辑器内容按题号记在内存里，组卷进度存 `localStorage`，回来能接着做。
+- 刷新不丢：编辑器内容按题号记在内存里，组卷进度存 localStorage，回来能接着做。
+- **考点覆盖组卷**：按考点家族轮流抽题，先抽最薄弱的，题量有限也能摊开到尽量多的考点。
+- **交卷报告带考点分布**：每个考点「本卷 x/y · 全库 x/y」，点「去练这个考点」直接跳到刷题页并按关键词过滤（?q= 已进 URL，刷新不丢）。
+- **打卡热力图**：一格一天，连续打卡（今天没做但昨天做了不算断）、最长连续、每日目标（3/5/10 次）都存在本地；有后端时按客户端时区聚合，静态版在浏览器里算。
 - 移动端：侧栏变抽屉 + 底部五栏导航，刷题页可横屏写代码。
 
 ## 六、和后端的分工
