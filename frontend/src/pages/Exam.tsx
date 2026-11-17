@@ -7,6 +7,7 @@ import {
   ChevronRight,
   Clock,
   FileText,
+  ListChecks,
   Play,
   RotateCcw,
   Send,
@@ -21,9 +22,10 @@ import { Badge, Button, Card, CardHeader, Modal, ProgressBar, Segmented, Spinner
 import { PageTitle } from "../components/Layout";
 import QuestionBody from "../components/QuestionBody";
 import CodeEditor from "../components/CodeEditor";
-import { chapterColor, fmtDuration, questionCode, STARTER_CODE } from "../lib/format";
+import { chapterColor, fmtDuration, pct, questionCode, shuffle, STARTER_CODE } from "../lib/format";
+import { topicGroup, topicKeyword } from "../lib/topics";
 
-type Strategy = "weighted" | "random" | "order" | "untouched";
+type Strategy = "weighted" | "random" | "order" | "untouched" | "coverage";
 type Screen = "setup" | "running" | "report";
 
 interface Item {
@@ -49,6 +51,7 @@ const STORAGE_KEY = "pyquiz.exam.paper.v1";
 
 const STRATEGY_OPTIONS: Array<{ value: Strategy; label: string; hint: string }> = [
   { value: "weighted", label: "错题加权", hint: "没通过的题出现概率更高，适合突击" },
+  { value: "coverage", label: "考点覆盖", hint: "每个考点家族各抽一题，优先薄弱的，适合查漏" },
   { value: "random", label: "随机抽题", hint: "题库里均匀抽，覆盖面广" },
   { value: "order", label: "顺序出卷", hint: "按章节顺序，适合系统复习" },
   { value: "untouched", label: "只考没做过", hint: "还没碰过的题优先，摸底用" },
@@ -113,6 +116,56 @@ function pickWeighted(pool: Question[], size: number, strategy: Strategy): Quest
   return picked;
 }
 
+/** 「考点覆盖」策略里的优先级：没通过 > 没做过 > 已通过 */
+function coverageRank(q: Question): number {
+  if (q.last === "fail") return 0;
+  if (q.attempts === 0) return 1;
+  return 2;
+}
+
+/**
+ * 考点覆盖组卷：按考点家族轮流抽，先抽最薄弱的家族。
+ *
+ * 题量有限时，随机抽很容易连着抽到「循环」里的五六道题，卷子看着有 10 道，
+ * 实际只考了一两件事。这里每个家族先各给一题，不够再进第二轮，
+ * 保证一张卷子摊到尽量多的考点上。
+ */
+function pickCoverage(pool: Question[], size: number): Question[] {
+  const groups = new Map<string, Question[]>();
+  for (const question of pool) {
+    const key = topicGroup(question.topic);
+    const items = groups.get(key) ?? [];
+    items.push(question);
+    groups.set(key, items);
+  }
+
+  const ordered = [...groups.entries()]
+    .map(([topic, items]) => {
+      // 组内也排一次：先没通过的，再没做过的，最后已通过的
+      const ranked = shuffle(items).sort((a, b) => coverageRank(a) - coverageRank(b));
+      const rank = ranked.reduce((min, question) => Math.min(min, coverageRank(question)), 2);
+      return { topic, items: ranked, rank };
+    })
+    .sort((a, b) => a.rank - b.rank);
+
+  const picked: Question[] = [];
+  const used = new Set<string>();
+  while (picked.length < size) {
+    let progressed = false;
+    for (const group of ordered) {
+      if (picked.length >= size) break;
+      const next = group.items.find((question) => !used.has(question.id));
+      if (!next) continue;
+      used.add(next.id);
+      picked.push(next);
+      progressed = true;
+    }
+    if (!progressed) break;      // 题量比考点还多，剩下的靠第二轮之后的空转兜住
+  }
+  // 按题号排回章节顺序，卷面看着正常
+  return picked.sort((a, b) => a.id.localeCompare(b.id));
+}
+
 export default function Exam() {
   const { questions, chapters, loading } = useBank();
   const toast = useToast();
@@ -154,6 +207,37 @@ export default function Exam() {
     [currentItem, questions],
   );
 
+  /** 题库里一共多少个考点家族（组卷配置里给「考点覆盖」显示） */
+  const topicCount = useMemo(
+    () => new Set(questions.map((q) => topicGroup(q.topic))).size,
+    [questions],
+  );
+
+  /** 交卷报告：这套卷子覆盖了哪些考点、每个考点过没过、全库水平如何 */
+  const topicReport = useMemo(() => {
+    if (!paper) return [];
+    const rows = new Map<string, { topic: string; total: number; passed: number }>();
+    for (const item of paper.items) {
+      const question = questions.find((q) => q.id === item.qid);
+      if (!question) continue;
+      const key = topicGroup(question.topic);
+      const row = rows.get(key) ?? { topic: key, total: 0, passed: 0 };
+      row.total += 1;
+      if (item.status === "pass") row.passed += 1;
+      rows.set(key, row);
+    }
+    return [...rows.values()]
+      .map((row) => {
+        const family = questions.filter((q) => topicGroup(q.topic) === row.topic);
+        return {
+          ...row,
+          bankTotal: family.length,
+          bankPassed: family.filter((q) => q.last === "pass").length,
+        };
+      })
+      .sort((a, b) => a.passed / a.total - b.passed / b.total || b.total - a.total);
+  }, [paper, questions]);
+
   const remainingMs = paper && paper.minutes > 0 ? paper.startedAt + paper.minutes * 60_000 - now : -1;
 
   const updatePaper = useCallback((updater: (prev: Paper) => Paper) => {
@@ -192,7 +276,10 @@ export default function Exam() {
       toast.warn("这个范围里没有题目，换个章节试试");
       return;
     }
-    const chosen = pickWeighted(pool, Math.min(size, pool.length), strategy);
+    const chosen =
+      strategy === "coverage"
+        ? pickCoverage(pool, Math.min(size, pool.length))
+        : pickWeighted(pool, Math.min(size, pool.length), strategy);
     const items: Item[] = chosen.map((q) => ({
       qid: q.id,
       code: q.code && q.code.trim() ? q.code : STARTER_CODE,
@@ -404,6 +491,9 @@ export default function Exam() {
               </Button>
               <span className="text-[0.68rem] text-fg-dim">
                 从 {selected.length > 0 ? selected.length : chapters.length} 个章节里抽 {size} 道
+                {strategy === "coverage"
+                  ? ` · 覆盖 ${Math.min(size, topicCount)} 个考点（题库共 ${topicCount} 个）`
+                  : ""}
               </span>
             </div>
           </Card>
@@ -749,6 +839,62 @@ export default function Exam() {
           </div>
         </Card>
       </div>
+
+      <Card className="mt-3">
+        <CardHeader
+          title="考点分布"
+          subtitle="按这套卷子的通过情况排，薄弱的考点可以直接点进去练"
+          icon={<ListChecks size={16} />}
+          right={
+            <span className="text-[0.66rem] text-fg-dim">
+              {topicReport.filter((row) => row.passed < row.total).length} / {topicReport.length} 个考点没全过
+            </span>
+          }
+        />
+        <div className="px-4 pb-4 sm:px-5">
+          {topicReport.length === 0 ? (
+            <p className="py-6 text-center text-xs text-fg-dim">这套卷子还没有可统计的考点</p>
+          ) : (
+            <ul className="grid gap-2 sm:grid-cols-2">
+              {topicReport.map((row) => {
+                const weak = row.passed < row.total;
+                return (
+                  <li key={row.topic} className="rounded-xl border border-line bg-ink-900/40 px-3 py-2">
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="flex min-w-0 items-center gap-1.5">
+                        <span className="truncate text-[0.82rem] text-fg">{row.topic}</span>
+                        {weak ? <Badge tone="bad">薄弱</Badge> : <Badge tone="ok">掌握</Badge>}
+                      </span>
+                      <span className="shrink-0 text-[0.66rem] tabular-nums text-fg-dim">
+                        本卷 {row.passed}/{row.total}
+                      </span>
+                    </div>
+                    <div className="mt-1.5">
+                      <ProgressBar
+                        value={row.passed}
+                        max={row.total || 1}
+                        tone={weak ? "warn" : "ok"}
+                        height={4}
+                      />
+                    </div>
+                    <div className="mt-1 flex items-center justify-between text-[0.62rem] text-fg-dim">
+                      <span>
+                        全库 {row.bankPassed}/{row.bankTotal} 已通过 · {pct(row.bankPassed, row.bankTotal)}%
+                      </span>
+                      <Link
+                        to={`/practice?q=${encodeURIComponent(topicKeyword(row.topic))}&bucket=todo`}
+                        className="text-brand-300 hover:underline"
+                      >
+                        去练这个考点
+                      </Link>
+                    </div>
+                  </li>
+                );
+              })}
+            </ul>
+          )}
+        </div>
+      </Card>
 
       <div className="mt-3 flex justify-center">
         <Button variant="soft" onClick={() => navigate("/practice")} icon={<ChevronRight size={14} />}>

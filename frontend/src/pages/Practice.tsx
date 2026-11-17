@@ -52,7 +52,8 @@ export default function Practice() {
 
   const chapterFilter = searchParams.get("chapter") ?? "all";
   const bucket = (searchParams.get("bucket") as Bucket) || "all";
-  const [keyword, setKeyword] = useState("");
+  // 关键词也放进 URL：考点报告里「去练这个考点」就是这么跳进来的
+  const [keyword, setKeyword] = useState(() => searchParams.get("q") ?? "");
   const [busy, setBusy] = useState<Busy>("idle");
   const [judgeResult, setJudgeResult] = useState<JudgeResult | null>(null);
   const [runResult, setRunResult] = useState<RunResult | null>(null);
@@ -81,12 +82,13 @@ export default function Practice() {
     });
   }, [questions, chapterFilter, bucket, keyword]);
 
-  // 没有指定题目时，自动进入第一道未通过的题
+  // 没有指定题目时，自动进入第一道未通过的题（保留章节/关键词筛选）
   useEffect(() => {
     if (qid || loading || questions.length === 0) return;
     const target = questions.find((q) => q.last !== "pass") ?? questions[0];
-    navigate(`/practice/${encodeURIComponent(target.id)}`, { replace: true });
-  }, [qid, loading, questions, navigate]);
+    const query = searchParams.toString();
+    navigate(`/practice/${encodeURIComponent(target.id)}${query ? `?${query}` : ""}`, { replace: true });
+  }, [qid, loading, questions, navigate, searchParams]);
 
   // 切换题目：恢复草稿 / 已保存代码 / 模板
   useEffect(() => {
@@ -121,7 +123,8 @@ export default function Practice() {
 
   const goto = (target: Question | undefined) => {
     if (!target) return;
-    navigate(`/practice/${encodeURIComponent(target.id)}`);
+    const query = searchParams.toString();
+    navigate(`/practice/${encodeURIComponent(target.id)}${query ? `?${query}` : ""}`);
   };
 
   const neighbor = (delta: number) => {
@@ -232,7 +235,10 @@ export default function Practice() {
             className="input py-1.5 pl-8 text-xs"
             placeholder="搜题号、标题、知识点…"
             value={keyword}
-            onChange={(e) => setKeyword(e.target.value)}
+            onChange={(e) => {
+              setKeyword(e.target.value);
+              setQuery("q", e.target.value.trim());
+            }}
           />
         </div>
         <div className="flex flex-wrap gap-1">
