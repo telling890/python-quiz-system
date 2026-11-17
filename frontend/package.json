@@ -1,7 +1,7 @@
 {
   "name": "python-quiz-frontend",
   "private": true,
-  "version": "1.0.0",
+  "version": "1.2.0",
   "type": "module",
   "description": "Python 刷题系统 · Web 前端（React 18 + Vite + TypeScript + Tailwind）",
   "scripts": {
