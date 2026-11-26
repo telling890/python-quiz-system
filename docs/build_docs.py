@@ -25,8 +25,8 @@ from docx.oxml import OxmlElement
 from qbank import QUESTIONS, CHAPTERS
 
 PROJECT = "Python 程序设计刷题系统"
-VERSION = "v1.0"
-DATE = "2026-10-21"
+VERSION = "v1.2"
+DATE = "2026-11-17"
 OUT_DIR = HERE
 
 TOC_ENTRIES = []      # 构建过程中登记的一级/二级标题
@@ -450,7 +450,7 @@ def build_design():
     marker = title_page(doc, "设计文档", [
         "版本：{}".format(VERSION),
         "日期：{}".format(DATE),
-        "技术栈：Python 3.8 + Tkinter + PyInstaller 5.13.2",
+        "技术栈：Python 3.8 + Tkinter（桌面）· React 18 + TypeScript（网页）· FastAPI（后端）· PyInstaller 5.13.2",
     ])
 
     h1(doc, "1 概述")
@@ -458,6 +458,10 @@ def build_design():
               "新增题目只改数据文件，新增章节只加一个数据模块。")
     para(doc, "设计目标：题库可扩展（{} 题已收录，可继续加）、判题要稳（超时/异常不卡界面）、"
               "部署要轻（目录版、无依赖、不解压）。".format(TOTAL_Q))
+    para(doc, "v1.2 在桌面版之外补齐了两种交付形态：一是**纯静态网页版**（GitHub Pages，"
+              "判题改在浏览器里用 Pyodide 跑真正的 CPython，没有后端也能用），"
+              "二是**多用户后端**（FastAPI + JWT + 子进程沙箱，一个班可以各刷各的）。"
+              "三者共用同一份题库与同一套判题规则，本文第 2.3、3.7~3.9、4.4~4.6 节描述它们的设计。")
 
     h1(doc, "2 总体设计")
     h2(doc, "2.1 分层结构")
@@ -473,6 +477,18 @@ def build_design():
     para(doc, "main.py → ui.App → (qbank, store, judge) → 无反向依赖；"
               "judge 不依赖界面，可单独测试；store 不依赖界面，可单独使用。"
               "这种结构使 selftest.py 能在无界面环境下校验全部 {} 个用例。".format(TOTAL_CASES))
+
+    h2(doc, "2.3 三种交付形态")
+    para(doc, "同一份题库与判题规则，按使用场景打成三种形态；三者的判题口径逐字一致，"
+              "差异只在「代码在哪里执行」和「进度存在哪里」：")
+    table(doc, ["形态", "判题在哪执行", "进度存哪", "适用场景"], [
+        ["桌面版（tkinter + exe）", "本进程内（judge.py，6 秒看门狗）",
+         "程序旁 data\\state.json，不可写时退到 %LOCALAPPDATA%", "机房、无网环境、U 盘带走"],
+        ["静态网页版（GitHub Pages）", "浏览器里（Pyodide / WebAssembly CPython）",
+         "localStorage", "评委/同学打开网址即用，零安装"],
+        ["多用户后端（FastAPI）", "服务端独立子进程（超时 kill、输出截断、内存上限）",
+         "SQLite / 数据库，按账号隔离", "一个班共用，需要跨设备同步"],
+    ], widths=[3.8, 4.2, 4.4, 3.6])
 
     h1(doc, "3 模块设计")
     h2(doc, "3.1 判题引擎 judge.py")
@@ -525,6 +541,40 @@ def build_design():
               "启动时读取屏幕 DPI（winfo_fpixels），按 dpi/96 得到缩放因子，"
               "窗口尺寸、最小尺寸、侧栏宽度、控件间距按比例放大，文字与布局在高分屏下保持一致观感。")
 
+    h2(doc, "3.7 React 前端 frontend/")
+    para(doc, "桌面版的网页形态用 React 18 + Vite + TypeScript + Tailwind CSS 4 重写，接版本化接口 /api/v1。"
+              "设计要点：")
+    for t in [
+        "路由级拆包：首屏只带概览页，代码编辑器（CodeMirror）与追踪播放器单独懒加载，首屏 gzip 约 68 KB；",
+        "同一份代码两套接口实现：`httpApi.ts`（有后端）与 `static/apiStatic.ts`（静态版），"
+        "由 `IS_STATIC` 在构建期二选一，页面只认 `QuizApi` 契约；",
+        "URL 即状态：章节、题本分桶、考点关键词都写进 query（`?q=`），切换题目与刷新都不丢筛选；",
+        "刷新不丢进度：组卷进度存 localStorage，编辑器内容按题号保留；",
+        "外观跟随系统：默认 `prefers-color-scheme`，首帧前就应用主题，避免深色用户看到白闪。",
+    ]:
+        bullet(doc, t)
+
+    h2(doc, "3.8 后端服务 backend/")
+    para(doc, "FastAPI 服务，与桌面版共用题库（启动时从 questions.json 灌入）：")
+    for t in [
+        "账号：PBKDF2 口令散列 + JWT，每人独立的进度、收藏、片段与提交历史；",
+        "判题：写临时文件后交给独立子进程执行，超时 kill、输出截断、Linux 下加内存上限，"
+        "学生代码拿不到题库；",
+        "接口分层：业务接口在 /api/v1（带 data 包装），旧的 /api/* 兼容层留给单文件网页版；",
+        "异步提交：POST /api/v1/submissions 返回 id，客户端按 800ms→1.6s 退避轮询结果，配合限流防刷；",
+        "自带 /docs 交互文档与 /healthz 健康检查，docker compose 一条命令部署。",
+    ]:
+        bullet(doc, t)
+
+    h2(doc, "3.9 数据看板 activity.ts / topics.ts")
+    para(doc, "统计页的三块新数据都属于「纯函数 + 一层薄接口」，可以脱离界面单独验证：")
+    table(doc, ["模块", "职责", "为什么单独抽出来"], [
+        ["activity.ts", "本地日期键（不用 toISOString，避免 UTC 把凌晨算到前一天）、"
+                        "连续打卡、最长连续、窗口内统计", "静态版没有后端，必须与后端 /activity 用同一套口径"],
+        ["topics.ts", "把题库里 135 个复合考点标签归并成十几个考点家族", "组卷的「考点覆盖」策略与交卷报告的「考点分布」要共用一把尺子"],
+        ["Charts.Heatmap", "手写 SVG/DOM 热力图：一列一周、一格一天、月份标签、深浅分级", "不引入图表库，主题变量一改浅色/深色都成立"],
+    ], widths=[3.2, 7.4, 5.4])
+
     h1(doc, "4 关键流程")
     h2(doc, "4.1 刷题与判题流程")
     para(doc, "选择章节 → 载入该范围第一道未通过题 → 读题/写代码（自动保存）→ 按 F5 → "
@@ -549,6 +599,45 @@ def build_design():
               "「INTERNAL ERROR: cannot create temporary directory」。因此把 PyInstaller 5.13.2 "
               "安装到项目内 pylibs/ 目录，build.py 通过 PYTHONPATH 加载，不污染系统环境。")
 
+    h2(doc, "4.4 浏览器内判题流程（静态版）")
+    para(doc, "静态版没有服务端，判题与追踪都在浏览器里完成，流程与桌面版一一对应：")
+    for t in [
+        "首次判题时下载 Pyodide 运行时（约 10 MB，CDN 缓存过之后就快），在 Web Worker 里初始化 CPython；",
+        "把学习者代码与用例送进 Worker：重定向 stdin/stdout、替换 input()、禁用危险模块，规则与 judge.py 一致；",
+        "输出归一化与「首个不一致行」的判定在前端复用同一套比较函数，保证与后端逐字一致；",
+        "超时靠终止 Worker 兜底（浏览器里没有 cgroup / rlimit），单个死循环只会丢掉当前这次执行；",
+        "单步追踪同样在 Worker 里用 sys.settrace 逐行记录（800 步 / 5 秒上限），不需要服务端参与。",
+    ]:
+        bullet(doc, t)
+
+    h2(doc, "4.5 打卡数据聚合（两种实现，一个口径）")
+    para(doc, "学习热力图要看「最近 182 / 364 天每天判了多少次」，而提交列表一次最多返回 100 条，"
+              "拼不出一年，所以有后端时由服务端聚合：")
+    for t in [
+        "GET /api/v1/activity?days=&tz=：按客户端时区偏移（分钟，东八区 480）把 UTC 时间换算成本地日期，"
+        "再按天计数；不带 tz 时按 UTC 切日，会让北京时间凌晨做的题算到前一天；",
+        "连续打卡与 GitHub 同口径：今天还没做、但昨天做了，连续记录仍算「活着」；今天和昨天都没有才归零；",
+        "窗口内每天返回一条（没做题的日子 count=0），前端不用自己补洞；",
+        "静态版没有后端，用 lib/activity.ts 在浏览器里按同一套规则算；"
+        "判题时给 localStorage 里的「日期 → 次数」+1，老数据没有这个字段时从最近 40 条提交历史补出来。",
+    ]:
+        bullet(doc, t)
+
+    h2(doc, "4.6 静态站点发布链路（GitHub Pages）")
+    para(doc, "一个仓库只有一个 Pages 站点，所以站点根放项目介绍页、刷题应用退到 /app/ 子路径：")
+    for t in [
+        "构建：`npm run build:static` 把题库复制成 bank.json 一起发布，base 由脚本从 GITHUB_REPOSITORY "
+        "推成 /<仓库>/app/；",
+        "组装：`scripts/assemble-site.mjs` 把应用产物搬进 dist/app/、把介绍页放到 dist 根，"
+        "并生成站点级 404.html；",
+        "404 守卫：404.html 是应用外壳加一段脚本——路径以 /app/ 开头就交给前端路由（深链接刷新仍进应用），"
+        "否则送回介绍页；",
+        "发布：`.github/workflows/pages.yml` 构建后强制推送到 gh-pages 分支，"
+        "Pages 直接读这个分支，不需要服务器也不需要 Actions 权限；",
+        "校验：CI 里断言 dist/app/index.html 的资源路径含 /app/、404.html 含守卫脚本，避免两处路径推错。",
+    ]:
+        bullet(doc, t)
+
     h1(doc, "5 数据结构设计")
     table(doc, ["结构", "定义", "说明"], [
         ["Question", "id / chapter / no / title / topic / level / desc / hint / ref / cases / explain",
@@ -558,6 +647,20 @@ def build_design():
         ["State", "{\"version\", \"last_qid\", \"questions\": {qid: record}}", "学习进度，见需求说明书 5.2"],
         ["Record", "attempts / passes / fails / favorite / seen / last / code / updated", "单题进度记录"],
     ], widths=[2.2, 8.0, 5.8])
+
+    h2(doc, "5.2 网页端与前端的补充结构")
+    para(doc, "网页版与桌面版共用题库，但进度、打卡、组卷这些数据在浏览器里的形态略有不同：")
+    table(doc, ["结构", "字段", "说明"], [
+        ["LocalState", "user / records / snippets / draft / submissions / activity",
+         "静态版的 localStorage 根对象；activity 是 v1.2 新增的「日期 → 判题次数」"],
+        ["Activity", "days[] / today / today_count / total / active_days / streak / best_streak / "
+                     "best_streak_end / timezone_minutes",
+         "热力图接口的返回；days 按日期升序、最后一条是今天，没做题的日子也在里面（count=0）"],
+        ["ActivityDay", "date（YYYY-MM-DD）/ count", "一格一天；date 用本地日历日，不是 UTC 日期"],
+        ["Paper（组卷）", "strategy / size / minutes / startedAt / items[{qid, code, status}]",
+         "v1.2 多了 coverage（考点覆盖）策略；进度存 localStorage，刷新可继续"],
+        ["TopicFamily", "由 topicGroup(topic) 得到，如「循环与遍历」", "组卷与交卷报告共用的考点口径"],
+    ], widths=[2.4, 7.6, 6.0])
 
     h1(doc, "6 界面设计")
     table(doc, ["要素", "设计"], [
@@ -575,6 +678,18 @@ def build_design():
         ["数据位置", "%LOCALAPPDATA%\\PyQuizState\\state.json（删除即重置）"],
         ["重新打包", "python build.py（自动使用 pylibs 中的 PyInstaller 5.13.2）"],
     ], widths=[3.2, 12.8])
+
+    h2(doc, "7.1 静态网页版的部署")
+    para(doc, "推送到 main 即触发 `.github/workflows/pages.yml`：安装依赖 → 构建静态版 → 组装站点 → "
+              "强制推送到 gh-pages 分支，Pages 读该分支发布。线上地址："
+              "站点根是项目介绍页，刷题应用在 /app/ 子路径。")
+    para(doc, "本地预览：`npm run build:static` → `node scripts/assemble-site.mjs` → 用任意静态服务器打开 dist "
+              "（`/` 是介绍页，`/app/` 是刷题）。注意这个组装产物是给 Pages 用的："
+              "后端服务挂的是未组装的 dist（应用在根路径），两者不要混用。")
+
+    h2(doc, "7.2 多用户后端的部署")
+    para(doc, "`cd backend && docker compose up -d` 一条命令起服务；镜像多阶段构建，"
+              "运行时不需要 Node。上线步骤（选机器、域名 / HTTPS、备份、排查）见 backend/DEPLOY.md。")
 
     h1(doc, "8 可扩展性设计")
     h2(doc, "8.1 新增题目")

@@ -46,3 +46,6 @@ docs/submission/
 # 文档渲染检查的中间产物
 docs/_preview/
 docs/_check_*.json
+docs/_toc/
+docs/_pdf1/
+docs/_pages/

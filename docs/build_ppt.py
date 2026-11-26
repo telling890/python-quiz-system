@@ -350,6 +350,35 @@ def build():
     for i, (head, body, color) in enumerate(web_notes):
         note(s, 9.5, 1.6 + i * 1.05, 3.4, head, body, color, size=11)
 
+    # 11.1 纯静态版（GitHub Pages）
+    s = new_slide(prs)
+    slide_title(s, "纯静态版：浏览器里跑真 Python", "没有后端也能判题——Pyodide 把 CPython 编译进 WebAssembly")
+    picture(s, "frontend/23-static-judge.png", 0.62, 1.5, 8.5, 5.3)
+    static_notes = [
+        ("打开即用", "GitHub Pages 托管，零安装零注册", ACCENT),
+        ("题库内置", "149 KB bank.json，139 题 / 338 用例随页面发布", GREEN),
+        ("真 Python 判题", "Pyodide 在 Web Worker 里执行，比对规则与后端逐字一致", YELLOW),
+        ("进度存本机", "localStorage；换设备要跨端就用后端版", PURPLE),
+        ("代价说清楚", "首次判题约 10 MB 运行时；死循环靠杀 Worker 兜底", RED),
+    ]
+    for i, (head, body, color) in enumerate(static_notes):
+        note(s, 9.5, 1.6 + i * 1.05, 3.4, head, body, color, size=11)
+
+    # 11.2 新前端与后端
+    s = new_slide(prs)
+    slide_title(s, "一套题库，三种形态", "React 新前端 + FastAPI 多用户后端，与桌面版共用同一份题")
+    picture(s, "frontend/33-live-judge.png", 0.62, 1.5, 7.6, 4.75)
+    stack_notes = [
+        ("React 18 + TS", "Vite 构建、按路由拆包，首屏 68 KB gzip", ACCENT),
+        ("两套接口实现", "httpApi / staticApi 共用 QuizApi 契约", GREEN),
+        ("多用户后端", "PBKDF2 + JWT，判题在子进程里跑", YELLOW),
+        ("异步提交", "拿 id 轮询，800ms→1.6s 退避 + 限流", PURPLE),
+    ]
+    for i, (head, body, color) in enumerate(stack_notes):
+        note(s, 8.6, 1.6 + i * 1.05, 4.3, head, body, color, size=11)
+    card(s, 0.62, 6.45, 7.6, 0.6, fill=CARD_HI, line=ACCENT)
+    textbox(s, 0.95, 6.58, 7.0, 0.36, "桌面版 / 静态网页 / 多用户后端：同一题库、同一判题口径", 10.5, False, TEXT)
+
     # 9 答案与解析
     s = new_slide(prs)
     slide_title(s, "参考答案与解析：学会，而不只是做对", "教材示范代码的问题也逐条指出")
@@ -377,6 +406,23 @@ def build():
     note(s, 8.6, 2.9, 4.1, "得分趋势", "按时间顺序画折线，配色区分优良中差", GREEN, size=11)
     note(s, 8.6, 4.1, 4.1, "与列表联动", "图表和下方表格共用同一份数据", YELLOW, size=11)
     note(s, 8.6, 5.3, 4.1, "导出 CSV", "Excel 双击即开，答辩材料可直接引用", PURPLE, size=11)
+
+    # 10.1 学习热力图
+    s = new_slide(prs)
+    slide_title(s, "学习热力图：把「练得散不散」看出来", "一格一天，半年 / 一年切换；连续打卡按 GitHub 口径判定")
+    picture(s, "frontend/77-dark-stats.png", 0.62, 1.5, 8.4, 4.4)
+    heat_notes = [
+        ("四个数", "连续打卡 · 最长连续 · 活跃天数 · 窗口内判题", ACCENT),
+        ("连续判定", "今天没做但昨天做了仍算「活着」，不断档", GREEN),
+        ("每日目标", "3 / 5 / 10 次，达标打勾，存在本机", YELLOW),
+        ("按本机时区聚合", "服务端用 tz 参数切日，凌晨做题不算到前一天", PURPLE),
+    ]
+    for i, (head, body, color) in enumerate(heat_notes):
+        note(s, 9.4, 1.6 + i * 1.05, 3.5, head, body, color, size=11)
+    card(s, 0.62, 6.15, 8.4, 0.72, fill=CARD_HI, line=ACCENT)
+    textbox(s, 0.95, 6.3, 7.8, 0.45,
+            "有后端走 GET /api/v1/activity；静态版用同一套规则在浏览器里算，两边口径一致",
+            10.5, False, TEXT)
 
     # 11 组卷配置
     s = new_slide(prs)
@@ -430,6 +476,23 @@ def build():
     note(s, 8.75, 2.75, 4.1, "逐题明细", "✓ 通过 / ✗ 未通过 / — 未作答", GREEN)
     note(s, 8.75, 3.8, 4.1, "章节分布", "本次卷子各章占比一目了然", YELLOW)
     note(s, 8.75, 4.85, 4.1, "后续动作", "再来一套 / 去错题本 / 返回主页", PURPLE)
+
+    # 13.1 考点覆盖与考点分布
+    s = new_slide(prs)
+    slide_title(s, "考点覆盖组卷 + 考点分布报告", "从「刷了很多题」到「知道弱在哪一类考点」")
+    picture(s, "frontend/74-exam-coverage-report.png", 0.62, 1.5, 8.3, 4.5)
+    cover_notes = [
+        ("新策略", "考点覆盖：按考点家族轮流抽题，先抽最薄弱的", ACCENT),
+        ("一把尺子", "135 个复合考点标签归并成十几个考点家族", GREEN),
+        ("本卷 vs 全库", "每个考点给出「本卷 x/y · 全库 x/y」", YELLOW),
+        ("直接去练", "点「去练这个考点」跳到刷题页并按关键词过滤", PURPLE),
+    ]
+    for i, (head, body, color) in enumerate(cover_notes):
+        note(s, 9.3, 1.6 + i * 1.05, 3.6, head, body, color, size=11)
+    card(s, 0.62, 6.2, 8.3, 0.68, fill=CARD_HI, line=ACCENT)
+    textbox(s, 0.95, 6.34, 7.7, 0.45,
+            "为什么要它：随机抽 10 道常常连着抽到「循环」，卷子看着有 10 道、实际只考了一两件事",
+            10.5, False, TEXT)
 
     # 14 架构
     s = new_slide(prs)
@@ -485,9 +548,9 @@ def build():
 
     # 16 质量
     s = new_slide(prs)
-    slide_title(s, "质量保障：能自动测的都自动测了", "题库自检 + 七类自动检查，全部通过")
+    slide_title(s, "质量保障：能自动测的都自动测了", "题库守卫 + 338 用例自检 + 后端 78 项 + 前端构建，四条 CI 全绿")
     nums = [("{}".format(TOTAL_Q), "道题自检", GREEN), ("{}".format(TOTAL_CASES), "个用例", ACCENT),
-            ("12", "组卷自检", YELLOW), ("62", "自动测试项合计", PURPLE)]
+            ("78", "后端接口测试", YELLOW), ("4", "条 CI 流水线", PURPLE)]
     for i, (v, label, color) in enumerate(nums):
         x = 0.9 + i * 3.0
         card(s, x, 1.6, 2.7, 1.15)
@@ -496,16 +559,16 @@ def build():
 
     rows = [
         ["题库自检", "参考答案跑自己的用例", "{} 题 / {} 用例".format(TOTAL_Q, TOTAL_CASES), "全部通过"],
+        ["题库质量守卫", "题号唯一/字段非空/章节合计/用例重复/可编译", "{} 题".format(TOTAL_Q), "全部通过"],
+        ["后端接口", "账号/判题/片段/导入/打卡聚合/用户隔离", "78 项", "全部通过"],
+        ["前端构建", "tsc 类型检查 + Vite 构建（Node 20 / 22）", "2 个版本", "全部通过"],
         ["组卷自检", "随机性/覆盖/过滤/评分/限时", "12 项", "全部通过"],
         ["执行过程追踪", "行号/变量/输出、步数与超时兜底", "12 项", "全部通过"],
-        ["网页版接口", "判题/追踪/进度回写/安全边界", "12 项", "全部通过"],
-        ["交互测试", "判题、错题、收藏、统计、组卷、自由编程", "16 项", "全部通过"],
-        ["边界测试", "死循环、输入不足、语法错误、危险调用", "10 项", "全部通过"],
-        ["数据落盘", "便携优先、只读兜底、迁移、导出导入", "8 项", "全部通过"],
-        ["打包验证", "启动、图标、进度、高分屏、web 资源", "7 项", "全部通过"],
+        ["交互与边界", "判题、错题、收藏、统计、组卷、死循环、危险调用", "26 项", "全部通过"],
+        ["数据落盘 + 打包", "便携优先、只读兜底、迁移、exe 启动", "15 项", "全部通过"],
     ]
-    shape = s.shapes.add_table(len(rows) + 1, 4, Inches(0.9), Inches(2.95),
-                               Inches(11.5), Inches(0.36 * (len(rows) + 1)))
+    shape = s.shapes.add_table(len(rows) + 1, 4, Inches(0.9), Inches(2.9),
+                               Inches(11.5), Inches(0.33 * (len(rows) + 1)))
     tbl = shape.table
     for i, w in enumerate([2.3, 6.2, 1.9, 1.6]):
         tbl.columns[i].width = Emu(int(Inches(w)))
@@ -524,9 +587,9 @@ def build():
             cell.margin_left = Inches(0.12)
             cell.vertical_anchor = MSO_ANCHOR.MIDDLE
             color = GREEN if j == 3 else (TEXT if j != 1 else DIM)
-            set_run(cell.text_frame.paragraphs[0].add_run(), text, 10, False, color)
+            set_run(cell.text_frame.paragraphs[0].add_run(), text, 9.5, False, color)
 
-    textbox(s, 0.9, 6.35, 11.5, 0.4,
+    textbox(s, 0.9, 6.45, 11.5, 0.4,
             "修过的典型问题：单文件解压失败 → 改目录版；DPI 未适配 → 按屏缩放；完数题超时 → 改 √n 枚举",
             10, False, DIM)
 
@@ -550,23 +613,23 @@ def build():
     s = new_slide(prs)
     slide_title(s, "总结与下一步", "把教材题变成可练、可测、可复盘的工具体系")
     textbox(s, 0.9, 1.6, 5.6, 0.36, "做完了什么", 15, True, GREEN)
-    textbox(s, 0.9, 2.0, 5.5, 2.9,
+    textbox(s, 0.9, 2.0, 5.5, 3.4,
             "· {} 题四类题库，{} 个用例全部自检通过\n\n"
             "· 判题引擎：沙箱执行 + 超时保护 + 归一化比对\n\n"
             "· 执行过程可视化：逐行走一遍，看变量怎么变\n\n"
-            "· 自由编程 + 网页版：手机也能刷，进度共用一份\n\n"
-            "· 学习闭环：错题本 / 收藏 / 统计 / 进度保存\n\n"
-            "· 模拟组卷：随机出卷 + 限时 + 交卷报告\n\n"
-            "· 免安装目录版 + 5 份项目文档".format(TOTAL_Q, TOTAL_CASES),
-            11.5, False, TEXT, line_spacing=1.35)
+            "· 三种形态：桌面版 / 纯静态网页版 / 多用户后端\n\n"
+            "· 学习闭环：错题本 / 收藏 / 热力图 / 考点分布\n\n"
+            "· 模拟组卷：错题加权 + 考点覆盖 + 限时 + 交卷报告\n\n"
+            "· 免安装目录版 + 9 份项目文档".format(TOTAL_Q, TOTAL_CASES),
+            11.5, False, TEXT, line_spacing=1.3)
 
     textbox(s, 7.0, 1.6, 5.4, 0.36, "还能怎么走", 15, True, YELLOW)
     textbox(s, 7.0, 2.0, 5.4, 2.9,
             "· 函数题 / 文件题（判题需要新的执行约定）\n\n"
             "· 代码纠错题 / 挖空题（用现有参考答案自动生成）\n\n"
-            "· 班级多用户档案：一份程序带一个班\n\n"
-            "· 题库热更新与云端同步",
-            11.5, False, TEXT, line_spacing=1.35)
+            "· 题库热更新与云端同步（静态版进度不跨设备）\n\n"
+            "· 把打卡数据接进班级大屏",
+            11.5, False, TEXT, line_spacing=1.3)
 
     card(s, 0.9, 5.75, 11.5, 0.8, fill=CARD_HI, line=ACCENT)
     textbox(s, 1.2, 5.95, 11.0, 0.4, "谢谢各位老师，请批评指正", 17, True, TEXT, align=PP_ALIGN.CENTER)
