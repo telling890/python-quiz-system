@@ -39,3 +39,10 @@ frontend/*.tsbuildinfo
 
 # Office 临时锁文件
 ~$*
+
+# 比赛提交包（_pack_submission.py 产出，体积大，不入库）
+docs/submission/
+
+# 文档渲染检查的中间产物
+docs/_preview/
+docs/_check_*.json

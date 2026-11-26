@@ -10,14 +10,29 @@
 | 答辩演示 | [4-答辩演示.pptx](4-答辩演示.pptx) | [PDF](pdf/4-答辩演示.pdf) | 18 页答辩稿 |
 | 项目汇报 | [5-项目汇报.docx](5-项目汇报.docx) | [PDF](pdf/5-项目汇报.pdf) | 项目概况、建设内容、技术亮点、质量保障、展望 |
 
+## 比赛提交材料（针对一门薄弱课程的学习软件）
+
+| 文档 | Word | PDF | 对应比赛要求 |
+| --- | --- | --- | --- |
+| 课程学习分析 | [6-课程学习分析.docx](6-课程学习分析.docx) | [PDF](pdf/6-课程学习分析.pdf) | (2) 课程学习分析 |
+| 学习策略分析 | [7-学习策略分析.docx](7-学习策略分析.docx) | [PDF](pdf/7-学习策略分析.pdf) | (3) 学习策略分析文档 |
+| 解说视频脚本 | [8-解说视频脚本.docx](8-解说视频脚本.docx) | [PDF](pdf/8-解说视频脚本.pdf) | (4) 软件解说视频（分镜 + 逐字稿 + 字幕） |
+| 提交清单与作品说明 | [9-提交清单与作品说明.docx](9-提交清单与作品说明.docx) | [PDF](pdf/9-提交清单与作品说明.pdf) | 六项材料对照、三分钟评审路径、自查清单 |
+
+> 这四份由 `python docs\build_submission.py` 生成，排版工具与 1~5 号文档共用（`build_docs.py`），
+> 字体、页边距、表格样式完全一致；题库数字（题数 / 用例数）同样是实时统计。
+> 源码包用 `python _pack_submission.py` 生成（默认排除 node_modules / pylibs / dist / .git）。
+
 ## 生成脚本
 
 文档不是手写排版的，而是脚本生成，改完数据重新跑即可：
 
 ```bat
-python docs\build_docs.py     :: 需求 / 设计 / 测试 三份 docx
-python docs\build_report.py   :: 项目汇报 docx（含截图）
-python docs\build_ppt.py      :: 答辩 PPT
+python docs\build_docs.py         :: 需求 / 设计 / 测试 三份 docx
+python docs\build_report.py       :: 项目汇报 docx（含截图）
+python docs\build_ppt.py          :: 答辩 PPT
+python docs\build_submission.py   :: 课程学习分析 / 学习策略 / 视频脚本 / 提交清单
+python _pack_submission.py        :: 比赛提交用的源码 zip
 ```
 
 导出 PDF：用任意 LibreOffice / WPS 打开后另存为 PDF，或命令行批量转换：
